@@ -28,7 +28,7 @@ public:
 
     uint get_x_class() {
         uint x_class = 0;
-        for (int i=0; i<this->x.size(); i++)
+        for (size_t i=0; i<this->x.size(); i++)
             x_class += (this->x[i]) ? (1 << i) : 0;
         return x_class;
     }
@@ -102,7 +102,7 @@ public:
         return n - offset;
     }
 
-    uint get_n(size_t pos) {
+    int get_n(size_t pos) {
         return pos + offset;
     }
 
@@ -175,7 +175,7 @@ public:
     }
 
     CaterpillarNimFile* get_file(uint x) {
-        for (int i=files.size(); i <= x; i++)
+        for (int i=files.size(); i <= (int) x; i++)
             files.push_back(new CaterpillarNimFile(
                 file_prefix + (to_string(i)),
                 i
@@ -225,9 +225,7 @@ public:
 
             tx x1(c.x.begin() + 1, c.x.end());
             Caterpillar c1 = Caterpillar::open_left(c.n - 2, x1);
-            uint nim = calculate_nim(c1);
-            nim ^= calculate_nim(Caterpillar(1, 0));
-            return nim;
+            return calculate_nim(c1) ^ calculate_nim(Caterpillar(1, 0));
         }
 
         if (i == c.n - 2) {
@@ -242,13 +240,11 @@ public:
 
             tx x1(c.x.begin(), c.x.end() - 1);
             Caterpillar c1 = Caterpillar::open_right(c.n - 2, x1);
-            uint nim = calculate_nim(c1);
-            nim ^= calculate_nim(Caterpillar(1, 0));
-            return nim;
+            return calculate_nim(c1) ^ calculate_nim(Caterpillar(1, 0));
         }
 
         i--;  // ajusta i para usar como índice de x
-        if (p || c.x[i]) {
+        if (p || !c.x[i]) {
             tx x1(c.x.begin(), c.x.begin() + (i - 1));
             Caterpillar c1 = Caterpillar::open_right(i, x1);
             tx x2(c.x.begin() + (i + 2), c.x.end());
@@ -349,7 +345,7 @@ void run_tests(CaterpillarNimCalculator &calculator) {
         cout << endl;
     }
 
-    map<int, int> nim_tests = {
+    map<int, uint> nim_tests = {
         {3, 1}, {4, 3}, {5, 0}, {6, 0}, {7, 1}
     };
     cout << "NIM TESTS" << endl;
@@ -405,7 +401,7 @@ int main() {
     CaterpillarNimCalculator calculator("caterpillar_nim_");
 
     // run_tests(calculator);
-    calculate_by_time(calculator, 1, hours(5), seconds(30));
+    calculate_by_time(calculator, 1, seconds(15), seconds(1));
 
     return 0;
 }
