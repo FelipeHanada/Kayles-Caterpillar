@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-INPUT_FILE = 'caterpillar_nim_1'
+INPUT_FILE = 'data/caterpillar_nim_1'
 START = 0
 N = 10000
 
