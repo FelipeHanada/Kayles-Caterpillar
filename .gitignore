@@ -3,3 +3,5 @@ caterpillar_nim_*
 
 out/*
 *.exe
+
+main.cpp
