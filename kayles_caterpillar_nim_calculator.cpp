@@ -80,6 +80,7 @@ public:
         this->x_class = x_class;
         this->offset = (x_class == 0) ? 0 : 3 + log2(x_class);
 
+        filesystem::create_directories(filesystem::path(filename).parent_path());
         this->file.open(filename, ios::in | ios::out | ios::binary | ios::app);
 
         if (!this->file.is_open()) {
@@ -395,13 +396,4 @@ void calculate_by_time(
     cout << "End of calculations. Last calculated n=" << n - 1 << endl;
 
     std::cout << std::endl;
-}
-
-int main() {
-    CaterpillarNimCalculator calculator("caterpillar_nim_");
-
-    // run_tests(calculator);
-    calculate_by_time(calculator, 1, seconds(15), seconds(1));
-
-    return 0;
 }
