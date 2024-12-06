@@ -12,13 +12,6 @@ public:
     int n;
     tx x;
 
-    Caterpillar(int n, tx &x)
-    : n(n), x(max(0, n - 2)) {
-        int j = min(n - 2, (int) x.size());
-        for (int i=0; i < j; i++)
-            this->x[i] = x[i];
-    }
-
     Caterpillar(int n, uint x)
     : n(n), x(max(0, n - 2)) {
         int j = min(this->x.size(), sizeof(x) * 8);
@@ -26,7 +19,14 @@ public:
             this->x[i] = x & (1 << i);
     }
 
-    uint get_x_class() {
+    Caterpillar(int n, const tx &x)
+    : n(n), x(max(0, n - 2)) {
+        int j = min(n - 2, (int) x.size());
+        for (int i=0; i < j; i++)
+            this->x[i] = x[i];
+    }
+
+    uint get_x_class() const {
         uint x_class = 0;
         for (size_t i=0; i<this->x.size(); i++)
             x_class += (this->x[i]) ? (1 << i) : 0;
@@ -61,11 +61,11 @@ public:
         return Caterpillar(n, x1);
     }
 
-    void print() {
-        cout << 0;
+    void print() const {
+        cout << 0 << "(";
         for (bool xi : this->x)
             cout << (xi ? 1 : 0);
-        cout << 0;
+        cout << ")" << 0;
     }
 };
 
@@ -300,6 +300,65 @@ public:
 
 
 void run_tests(CaterpillarNimCalculator &calculator) {
+    cout << "CATERPILLAR TESTS" << endl;
+    cout << "Testing caterpillar x_class converter" << endl;
+    for (int i=0; i<100; i++) {
+        Caterpillar c(100, i);
+        cout << "\t";
+        if (c.get_x_class() == i)
+            cout << "Success";
+        else
+            cout << "Failed";
+        cout << " - x=" << i << endl;
+    }
+    
+    cout << "CALCULATOR TESTS" << endl;
+    cout << "Testing files n-position converter" << endl;
+    for (int i=0; i<3; i++) {
+        CaterpillarNimFile *file = calculator.get_file(i);
+        cout << "testing for x=" << i << endl;
+        for (int j=0; j<10; j++) {
+            cout << "\t";
+            if (file->get_pos(file->get_n(j)) == j)
+                cout << "Success";
+            else
+                cout << "Failed";
+            cout << " - pos=" << j << endl;
+        }
+    }
+
+    cout << "Testing file nim getters" << endl;
+    for (int i=0; i<3; i++) {
+        CaterpillarNimFile *file = calculator.get_file(i);
+        cout << "testing for x=" << i << endl;
+        for (int j=0; j<10; j++) {
+            int n = file->get_n(j);
+            calculator.calculate_nim(Caterpillar(n, i));
+            cout << "\t";
+            if (file->read_n(n) == file->read(j))
+                cout << "Success";
+            else
+                cout << "Failed";
+            cout << " - n=" << n << endl;
+        }
+    }
+
+    cout << "Testing calculator file writing" << endl;
+    for (int i=0; i<3; i++) {
+        CaterpillarNimFile *file = calculator.get_file(i);
+        cout << "testing for x=" << i << endl;
+        for (int j=0; j<10; j++) {
+            int n = file->get_n(j);
+            uint nim = calculator.calculate_nim(Caterpillar(n, i));
+            cout << "\t";
+            if (file->read(j) == nim)
+                cout << "Success";
+            else
+                cout << "Failed";
+            cout << " - n=" << n << endl;
+        }
+    }
+
     map<pair<int, tx>, pair<int, tx>> open_right_tests = {
         {{2, {0}}, {2, {}}},
         {{2, {1}}, {3, {0}}},
@@ -312,14 +371,17 @@ void run_tests(CaterpillarNimCalculator &calculator) {
         auto expected = test.second;
         Caterpillar c = Caterpillar::open_right(input.first, input.second);
         Caterpillar expected_c(expected.first, expected.second);
+        
+        cout << "\t";
         if (c.n == expected.first && c.x == expected.second) {
-            cout << "Sucess";
+            cout << "Success. ";
         } else {
             cout << "Failed. Expected: ";
             expected_c.print();
-            cout << " Found: ";
-            c.print();
+            cout << " ";
         }
+        cout << "Found: ";
+        c.print();
         cout << endl;
     }
 
@@ -335,31 +397,70 @@ void run_tests(CaterpillarNimCalculator &calculator) {
         auto expected = test.second;
         Caterpillar c = Caterpillar::open_left(input.first, input.second);
         Caterpillar expected_c(expected.first, expected.second);
+
+        cout << "\t";
         if (c.n == expected.first && c.x == expected.second) {
-            cout << "Sucess";
+            cout << "Success. ";
         } else {
             cout << "Failed. Expected: ";
             expected_c.print();
-            cout << " Found: ";
-            c.print();
+            cout << " ";
         }
+        cout << "Found: ";
+        c.print();
         cout << endl;
     }
 
-    map<int, uint> nim_tests = {
-        {3, 1}, {4, 3}, {5, 0}, {6, 0}, {7, 1}
+    vector<pair<Caterpillar, uint>> nim_tests = {
+        {Caterpillar(3, 1), 1},
+        {Caterpillar(4, 1), 3},
+        {Caterpillar(5, 1), 0},
+        {Caterpillar(6, 1), 0},
+        {Caterpillar(7, 1), 1}
     };
     cout << "NIM TESTS" << endl;
     for (auto test : nim_tests) {
-        cout << "Calculating for n=" << test.first << ") - ";
-        uint nim = calculator.calculate_nim(Caterpillar(test.first, 1));
-        if (nim == test.second) {
+        uint nim = calculator.calculate_nim(test.first);
+        
+        cout << "\t";
+        cout << "Calculating for n=" << test.first.n << " - ";
+        if (nim == test.second)
             cout << "Success";
-        } else {
+        else
             cout << "Failed. Expected: " << test.second << ", Found: " << nim;
-        }
         cout << endl;
     }
+}
+
+void calculate_by_n(
+    CaterpillarNimCalculator &calculator,
+    uint x_class,
+    uint n_limit,
+    const chrono::milliseconds &display_interval = minutes(1)
+) {
+    using namespace std::chrono;
+    auto start = high_resolution_clock::now();
+    auto next_display_time = start + display_interval;
+
+    CaterpillarNimFile *file = calculator.get_file(x_class);
+
+    int n = file->get_n(file->size());
+    
+    cout << "Starting calculations from n=" << n << endl;
+    while (n < n_limit) {
+        auto now = high_resolution_clock::now();
+        if (now >= next_display_time) {
+            auto elapsed = duration_cast<milliseconds>(now - start);
+            cout << "Time elapsed: " << elapsed.count() << " millisecond(s). ";
+            cout << "Last calculated n=" << n - 1 << endl;
+            next_display_time += display_interval;
+        }
+
+        calculator.calculate_nim(Caterpillar(n, x_class));
+        n++;
+    }
+
+    cout << "End of calculations. Last calculated n=" << n - 1 << endl;
 }
 
 void calculate_by_time(
@@ -375,22 +476,21 @@ void calculate_by_time(
     CaterpillarNimFile *file = calculator.get_file(x_class);
 
     int n = file->get_n(file->size());
-    cout << "Starting calculations from n=" << n << endl;
 
+    cout << "Starting calculations from n=" << n << endl;
     while (true) {
         auto now = high_resolution_clock::now();
-        if (now - start > time_limit)
-            break;
-
-        calculator.calculate_nim(Caterpillar(n, x_class));
-        n++;
-
         if (now >= next_display_time) {
             auto elapsed = duration_cast<milliseconds>(now - start);
             cout << "Time elapsed: " << elapsed.count() << " millisecond(s). ";
             cout << "Last calculated n=" << n - 1 << endl;
             next_display_time += display_interval;
         }
+        if (now - start > time_limit)
+            break;
+
+        calculator.calculate_nim(Caterpillar(n, x_class));
+        n++;
     }
 
     cout << "End of calculations. Last calculated n=" << n - 1 << endl;
