@@ -81,7 +81,14 @@ public:
         this->offset = (x_class == 0) ? 0 : 3 + log2(x_class);
 
         filesystem::create_directories(filesystem::path(filename).parent_path());
-        this->file.open(filename, ios::in | ios::out | ios::binary | ios::app);
+        file.open(filename, ios::in | ios::out | ios::binary);
+        if (!file.is_open()) {
+            file.clear();
+            file.open(filename, ios::out | ios::binary);
+
+            file.close();
+            file.open(filename, ios::in | ios::out | ios::binary);
+        }
 
         if (!this->file.is_open()) {
             cerr << "Error opening file: " << filename << endl;
@@ -99,7 +106,8 @@ public:
     }
 
     size_t get_pos(uint n) {
-        if (n < offset) return 0;
+        if (n < offset)
+            return 0;
         return n - offset;
     }
 
@@ -114,7 +122,7 @@ public:
         return nim;
     }
 
-    uint nim(uint n) {
+    uint read_n(uint n) {
         return read(get_pos(n));
     }
 
@@ -176,7 +184,7 @@ public:
     }
 
     CaterpillarNimFile* get_file(uint x) {
-        for (int i=files.size(); i <= (int) x; i++)
+        for (uint i=files.size(); i <= x; i++)
             files.push_back(new CaterpillarNimFile(
                 file_prefix + (to_string(i)),
                 i
@@ -185,7 +193,7 @@ public:
         return files[x];
     }
 
-    uint calculate_play_nim(Caterpillar &c, int i, bool p) {
+    uint calculate_play_nim(const Caterpillar &c, int i, bool p) {
         /*
         c: Caterpillar jogado
         i: vértice jogado
@@ -267,12 +275,12 @@ public:
         }
     }
 
-    uint calculate_nim(Caterpillar c) {
-        CaterpillarNimFile *x_file = get_file(c.get_x_class());
-        if (x_file->is_calculated(c.n))
-            return x_file->nim(c.n);
+    uint calculate_nim(const Caterpillar &c) {
+        CaterpillarNimFile *file = get_file(c.get_x_class());
+        if (file->is_calculated(c.n))
+            return file->read_n(c.n);
 
-        if (c.n > x_file->get_n(0))
+        if (c.n > file->get_n(file->size()))
             calculate_nim(Caterpillar(c.n - 1, c.x));
         //  certifica-se que o caterpillar anterior já foi calculado
         //  para manter a sequencialidade do arquivo
@@ -293,11 +301,10 @@ public:
         for (auto it = s.begin(); it != s.end() && *it == nim; it++)
             nim++;
         
-        x_file->write(nim);
+        file->write(c.n, nim);
         return nim;
     }
 };
-
 
 void run_tests(CaterpillarNimCalculator &calculator) {
     cout << "CATERPILLAR TESTS" << endl;
@@ -436,9 +443,8 @@ void calculate_by_n(
     CaterpillarNimCalculator &calculator,
     uint x_class,
     uint n_limit,
-    const chrono::milliseconds &display_interval = minutes(1)
+    const milliseconds &display_interval = minutes(1)
 ) {
-    using namespace std::chrono;
     auto start = high_resolution_clock::now();
     auto next_display_time = start + display_interval;
 
@@ -466,10 +472,9 @@ void calculate_by_n(
 void calculate_by_time(
     CaterpillarNimCalculator &calculator,
     uint x_class,
-    const chrono::milliseconds &time_limit,
-    const chrono::milliseconds &display_interval = minutes(1)
+    const milliseconds &time_limit,
+    const milliseconds &display_interval = minutes(1)
 ) {
-    using namespace std::chrono;
     auto start = high_resolution_clock::now();
     auto next_display_time = start + display_interval;
 
