@@ -11,13 +11,13 @@ using namespace std;
 using namespace std::chrono;
 
 typedef unsigned int uint;
-#define tx vector<bool>
+#define DEFAULT_CACHE_SIZE (1 << 30)
 
 
 class Caterpillar {
 public:
     int n;
-    tx x;
+    vector<bool> x;
 
     Caterpillar(int n, uint x)
     : n(n), x(max(0, n - 2)) {
@@ -26,7 +26,7 @@ public:
             this->x[i] = x & (1 << i);
     }
 
-    Caterpillar(int n, const tx &x)
+    Caterpillar(int n, const vector<bool> &x)
     : n(n), x(max(0, n - 2)) {
         int j = min(n - 2, (int) x.size());
         for (int i=0; i < j; i++)
@@ -40,31 +40,31 @@ public:
         return x_class;
     }
 
-    static Caterpillar open_right(int n, tx &x) {
+    static Caterpillar open_right(int n, vector<bool> &x) {
         // recebe um Caterpillar sem vértice normal "0" à direita
         // retorna ele com vértice 0 à direita
         // exemplo: 0(010101011101 -> 0(010101011100)0
         if (n == 1) return Caterpillar(1, 0);
         if (x.back()) {
-            tx x1(x.begin(), x.end());
+            vector<bool> x1(x.begin(), x.end());
             x1.back() = false;
             return Caterpillar(n + 1, x1);
         }
-        tx x1(x.begin(), x.end() - 1);
+        vector<bool> x1(x.begin(), x.end() - 1);
         return Caterpillar(n, x1);
     }
 
-    static Caterpillar open_left(int n, tx &x) {
+    static Caterpillar open_left(int n, vector<bool> &x) {
         // recebe um Caterpillar sem vértice normal "0" à esquerda
         // retorna ele com vértice 0 à esquerda
         // exemplo: 010101011101)0 -> 0(10101011101)0
         if (n == 1) return Caterpillar(1, 0);
         if (x.front()) {
-            tx x1(x.begin(), x.end());
+            vector<bool> x1(x.begin(), x.end());
             x1.front() = false;
             return Caterpillar(n + 1, x1);
         }
-        tx x1(x.begin() + 1, x.end());
+        vector<bool> x1(x.begin() + 1, x.end());
         return Caterpillar(n, x1);
     }
 
@@ -79,13 +79,18 @@ public:
 class CaterpillarNimFile {
     string filename;
     fstream file;
+    size_t file_size;
     uint x_class;
     size_t offset;
+    size_t cache_size;
+    vector<uint> cache;
 public:
-    CaterpillarNimFile(string filename, uint x_class) {
+    CaterpillarNimFile(string filename, uint x_class, size_t cache_size = DEFAULT_CACHE_SIZE) {
         this->filename = filename;
         this->x_class = x_class;
         this->offset = (x_class == 0) ? 0 : 3 + log2(x_class);
+        this->cache_size = cache_size;
+        this->cache = vector<uint>(cache_size);
 
         filesystem::create_directories(filesystem::path(filename).parent_path());
         file.open(filename, ios::in | ios::out | ios::binary);
@@ -101,6 +106,12 @@ public:
             cerr << "Error opening file: " << filename << endl;
             return;
         }
+
+        this->file.seekg(0, ios::end);
+        this->file_size = file.tellg();
+
+        for (int i=0; i<cache_size && i<this->size(); i++)
+            this->cache[i] = this->raw_read_pos(i);
     }
 
     ~CaterpillarNimFile() {
@@ -108,8 +119,7 @@ public:
     }
     
     size_t size() {
-        this->file.seekg(0, ios::end);
-        return file.tellg() / sizeof(uint);
+        return this->file_size / sizeof(uint);
     }
 
     size_t get_pos(uint n) {
@@ -122,15 +132,22 @@ public:
         return pos + offset;
     }
 
-    uint read(size_t pos) {
-        this->file.seekg(pos * sizeof(uint));
+    uint raw_read_pos(size_t pos) {
         uint nim;
+        this->file.seekg(pos * sizeof(uint));
         this->file.read((char*)&nim, sizeof(uint));
         return nim;
     }
 
+    uint read_pos(size_t pos) {
+        if (pos < this->cache_size)
+            return this->cache[pos];
+
+        return raw_read_pos(pos);
+    }
+
     uint read_n(uint n) {
-        return read(get_pos(n));
+        return read_pos(get_pos(n));
     }
 
     uint is_calculated(uint n) {
@@ -138,51 +155,40 @@ public:
     }
 
     void write(uint nim) {
+        if (this->size() < this->cache_size)
+            this->cache[this->size()] = nim;
+
         this->file.seekp(0, ios::end);
         this->file.write((char*)&nim, sizeof(uint));
+        this->file_size += sizeof(uint);
     }
 
     void write(uint n, uint nim) {
         size_t pos = get_pos(n);
+
+        if (pos >= this->size())
+            return write(nim);
+
+        if (pos < this->cache_size)
+            this->cache[n] = nim;
+
         this->file.seekp(pos * sizeof(uint));
         this->file.write((char*)&nim, sizeof(uint));
     }
 };
 
-class CaterpillarNimFileIterator {
-    CaterpillarNimFile *file;
-    uint position;
-public:
-    CaterpillarNimFileIterator(CaterpillarNimFile *file) {
-        this->file = file;
-        this->position = 0;
-    }
-
-    void reset() {
-        this->position = 0;
-    }
-
-    uint next() {
-        return this->file->read(this->position++);
-    }
-
-    bool has_next() {
-        return this->position < this->file->size();
-    }
-};
-
-
 class CaterpillarNimCalculator {
     vector<CaterpillarNimFile*> files;
     string file_prefix;
+    size_t default_cache_size;
 public:
-    CaterpillarNimCalculator(string file_prefix) {
+    CaterpillarNimCalculator(string file_prefix, size_t default_cache_size = DEFAULT_CACHE_SIZE) {
         this->file_prefix = file_prefix;
+        this->default_cache_size = default_cache_size;
 
-        CaterpillarNimFile *file0 = new CaterpillarNimFile(file_prefix + "0", 0);
+        CaterpillarNimFile *file0 = this->get_file(0);
         file0->write(0, 0);
         file0->write(1, 1);
-        files.push_back(file0);
     }
 
     ~CaterpillarNimCalculator() {
@@ -194,7 +200,8 @@ public:
         for (uint i=files.size(); i <= x; i++)
             files.push_back(new CaterpillarNimFile(
                 file_prefix + (to_string(i)),
-                i
+                i,
+                default_cache_size
             ));
         
         return files[x];
@@ -212,7 +219,7 @@ public:
             return calculate_nim(Caterpillar(0, 0));
 
         if (i == 0) {
-            tx x1(c.x.begin() + 1, c.x.end());
+            vector<bool> x1(c.x.begin() + 1, c.x.end());
             Caterpillar c1 = Caterpillar::open_left(c.n - 2, x1);
             uint nim = calculate_nim(c1);
             if (c.x.front())
@@ -221,7 +228,7 @@ public:
         }
 
         if (i == c.n - 1) {
-            tx x1(c.x.begin(), c.x.end() - 1);
+            vector<bool> x1(c.x.begin(), c.x.end() - 1);
             Caterpillar c1 = Caterpillar::open_right(c.n - 2, x1);
             uint nim = calculate_nim(c1);
             if (c.x.back())
@@ -231,7 +238,7 @@ public:
 
         if (i == 1) {
             if (p || !c.x.front()) {
-                tx x1(c.x.begin() + 2, c.x.end());
+                vector<bool> x1(c.x.begin() + 2, c.x.end());
                 Caterpillar c1 = Caterpillar::open_left(c.n - 3, x1);
                 uint nim = calculate_nim(c1);
                 if (c.x[1])
@@ -239,14 +246,14 @@ public:
                 return nim;
             }
 
-            tx x1(c.x.begin() + 1, c.x.end());
+            vector<bool> x1(c.x.begin() + 1, c.x.end());
             Caterpillar c1 = Caterpillar::open_left(c.n - 2, x1);
             return calculate_nim(c1) ^ calculate_nim(Caterpillar(1, 0));
         }
 
         if (i == c.n - 2) {
             if (p || !c.x.back()) {
-                tx x1(c.x.begin(), c.x.end() - 2);
+                vector<bool> x1(c.x.begin(), c.x.end() - 2);
                 Caterpillar c1 = Caterpillar::open_right(c.n - 3, x1);
                 uint nim = calculate_nim(c1);
                 if (*(c.x.rbegin() + 1))
@@ -254,16 +261,16 @@ public:
                 return nim;
             }
 
-            tx x1(c.x.begin(), c.x.end() - 1);
+            vector<bool> x1(c.x.begin(), c.x.end() - 1);
             Caterpillar c1 = Caterpillar::open_right(c.n - 2, x1);
             return calculate_nim(c1) ^ calculate_nim(Caterpillar(1, 0));
         }
 
         i--;  // ajusta i para usar como índice de x
         if (p || !c.x[i]) {
-            tx x1(c.x.begin(), c.x.begin() + (i - 1));
+            vector<bool> x1(c.x.begin(), c.x.begin() + (i - 1));
             Caterpillar c1 = Caterpillar::open_right(i, x1);
-            tx x2(c.x.begin() + (i + 2), c.x.end());
+            vector<bool> x2(c.x.begin() + (i + 2), c.x.end());
             Caterpillar c2 = Caterpillar::open_left(c.n - (i + 3), x2);
 
             uint nim = calculate_nim(c1) ^ calculate_nim(c2);
@@ -274,9 +281,9 @@ public:
 
             return nim;
         } else {
-            tx x1(c.x.begin(), c.x.begin() + i);
+            vector<bool> x1(c.x.begin(), c.x.begin() + i);
             Caterpillar c1 = Caterpillar::open_right(i + 1, x1);
-            tx x2(c.x.begin() + (i + 1), c.x.end());
+            vector<bool> x2(c.x.begin() + (i + 1), c.x.end());
             Caterpillar c2 = Caterpillar::open_left(c.n - (i + 2), x2);
             return calculate_nim(c1) ^ calculate_nim(c2);
         }
@@ -308,7 +315,7 @@ public:
         for (auto it = s.begin(); it != s.end() && *it == nim; it++)
             nim++;
         
-        file->write(c.n, nim);
+        file->write(nim);
         return nim;
     }
 };
@@ -316,7 +323,7 @@ public:
 void run_tests(CaterpillarNimCalculator &calculator) {
     cout << "CATERPILLAR TESTS" << endl;
     cout << "Testing caterpillar x_class converter" << endl;
-    for (int i=0; i<100; i++) {
+    for (int i=0; i<10; i++) {
         Caterpillar c(100, i);
         cout << "\t";
         if (c.get_x_class() == i)
@@ -341,22 +348,6 @@ void run_tests(CaterpillarNimCalculator &calculator) {
         }
     }
 
-    cout << "Testing file nim getters" << endl;
-    for (int i=0; i<3; i++) {
-        CaterpillarNimFile *file = calculator.get_file(i);
-        cout << "testing for x=" << i << endl;
-        for (int j=0; j<10; j++) {
-            int n = file->get_n(j);
-            calculator.calculate_nim(Caterpillar(n, i));
-            cout << "\t";
-            if (file->read_n(n) == file->read(j))
-                cout << "Success";
-            else
-                cout << "Failed";
-            cout << " - n=" << n << endl;
-        }
-    }
-
     cout << "Testing calculator file writing" << endl;
     for (int i=0; i<3; i++) {
         CaterpillarNimFile *file = calculator.get_file(i);
@@ -365,7 +356,7 @@ void run_tests(CaterpillarNimCalculator &calculator) {
             int n = file->get_n(j);
             uint nim = calculator.calculate_nim(Caterpillar(n, i));
             cout << "\t";
-            if (file->read(j) == nim)
+            if (file->read_pos(j) == nim)
                 cout << "Success";
             else
                 cout << "Failed";
@@ -373,7 +364,38 @@ void run_tests(CaterpillarNimCalculator &calculator) {
         }
     }
 
-    map<pair<int, tx>, pair<int, tx>> open_right_tests = {
+    cout << "Testing file nim getters" << endl;
+    for (int i=0; i<3; i++) {
+        CaterpillarNimFile *file = calculator.get_file(i);
+        cout << "testing for x=" << i << endl;
+        for (int j=0; j<10; j++) {
+            int n = file->get_n(j);
+            calculator.calculate_nim(Caterpillar(n, i));
+            cout << "\t";
+            if (file->read_n(n) == file->read_pos(j))
+                cout << "Success";
+            else
+                cout << "Failed";
+            cout << " - n=" << n << endl;
+        }
+    }
+
+    cout << "Testing cache" << endl;
+    for (int i=0; i<3; i++) {
+        CaterpillarNimFile *file = calculator.get_file(i);
+        cout << "testing for x=" << i << endl;
+        for (int j=0; j<100; j++) {
+            calculator.calculate_nim(Caterpillar(file->get_n(j), i));
+            cout << "\t";
+            if (file->read_pos(j) == file->raw_read_pos(j))
+                cout << "Success";
+            else
+                cout << "Failed";
+            cout << " - pos=" << j << endl;
+        }
+    }
+
+    map<pair<int, vector<bool>>, pair<int, vector<bool>>> open_right_tests = {
         {{2, {0}}, {2, {}}},
         {{2, {1}}, {3, {0}}},
         {{13, {0,1,0,1,0,1,0,1,1,1,0,0}}, {13, {0,1,0,1,0,1,0,1,1,1,0}}},
@@ -399,7 +421,7 @@ void run_tests(CaterpillarNimCalculator &calculator) {
         cout << endl;
     }
 
-    map<pair<int, tx>, pair<int, tx>> open_left_tests = {
+    map<pair<int, vector<bool>>, pair<int, vector<bool>>> open_left_tests = {
         {{2, {0}}, {2, {}}},
         {{2, {1}}, {3, {0}}},
         {{13, {0,1,0,1,0,1,0,1,1,1,0,1}}, {13, {1,0,1,0,1,0,1,1,1,0,1}}},
@@ -426,6 +448,9 @@ void run_tests(CaterpillarNimCalculator &calculator) {
     }
 
     vector<pair<Caterpillar, uint>> nim_tests = {
+        {Caterpillar(0, 0), 0},
+        {Caterpillar(1, 0), 1},
+        {Caterpillar(4, 0), 0},
         {Caterpillar(3, 1), 1},
         {Caterpillar(4, 1), 3},
         {Caterpillar(5, 1), 0},
@@ -437,7 +462,7 @@ void run_tests(CaterpillarNimCalculator &calculator) {
         uint nim = calculator.calculate_nim(test.first);
         
         cout << "\t";
-        cout << "Calculating for n=" << test.first.n << " - ";
+        cout << "Calculating for n=" << test.first.n << " x=" << test.first.get_x_class() << " - ";
         if (nim == test.second)
             cout << "Success";
         else
