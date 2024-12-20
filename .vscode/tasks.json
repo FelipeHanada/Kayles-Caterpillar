@@ -5,6 +5,8 @@
             "label": "C/C++: g++.exe build active file",
             "command": "g++",
             "args": [
+                "-I",
+                "${workspaceFolder}/lib/boost_1_82_0",
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
