@@ -9,9 +9,9 @@
                 "${workspaceFolder}/lib/boost_1_82_0",
                 "-fdiagnostics-color=always",
                 "-g",
-                "${file}",
+                "main.cpp",
                 "-o",
-                "${fileDirname}/out/${fileBasenameNoExtension}.exe"
+                "${fileDirname}/out/main.exe"
             ],
             "options": {
                 "cwd": "${fileDirname}"

@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "g++.exe build and debug active file",
+            "name": "g++.exe build and debug main file",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/out/${fileBasenameNoExtension}.exe",
+            "program": "${fileDirname}/out/main.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
