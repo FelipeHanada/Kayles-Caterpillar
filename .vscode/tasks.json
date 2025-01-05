@@ -6,15 +6,16 @@
             "command": "g++",
             "args": [
                 "-I",
-                "${workspaceFolder}/lib/boost_1_82_0",
+                "${workspaceFolder}/headers",
                 "-fdiagnostics-color=always",
                 "-g",
-                "main.cpp",
+                "${workspaceFolder}/src/*.cpp",
+                "${workspaceFolder}/main.cpp",
                 "-o",
-                "${fileDirname}/out/main.exe"
+                "${workspaceFolder}/out/main.exe"
             ],
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [
                 "$gcc"
