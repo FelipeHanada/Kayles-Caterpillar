@@ -5,9 +5,9 @@
             "label": "C/C++: g++.exe build active file",
             "command": "g++",
             "args": [
+                "-fdiagnostics-color=always",
                 "-I",
                 "${workspaceFolder}/headers",
-                "-fdiagnostics-color=always",
                 "-g",
                 "${workspaceFolder}/src/*.cpp",
                 "${workspaceFolder}/main.cpp",
