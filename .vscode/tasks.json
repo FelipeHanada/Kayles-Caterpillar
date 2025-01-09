@@ -7,12 +7,12 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-I",
-                "${workspaceFolder}/headers",
+                "headers",
                 "-g",
-                "${workspaceFolder}/src/*.cpp",
-                "${workspaceFolder}/main.cpp",
+                "src/*.cpp",
+                "main.cpp",
                 "-o",
-                "${workspaceFolder}/out/main.exe"
+                "out/main.exe"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"

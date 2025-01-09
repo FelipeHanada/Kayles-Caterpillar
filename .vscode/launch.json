@@ -5,7 +5,7 @@
             "name": "g++.exe build and debug main file",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/out/main.exe",
+            "program": "out/main.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
