@@ -19,6 +19,7 @@ public:
     BCaterpillar(int n, unsigned int x);
     BCaterpillar(int n);
     BCaterpillar(std::vector<int> x);
+    BCaterpillar(const Caterpillar* c);
     virtual ~BCaterpillar();
 
     unsigned int get_x_class() const;

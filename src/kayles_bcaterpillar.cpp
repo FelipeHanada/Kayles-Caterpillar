@@ -27,6 +27,17 @@ BCaterpillar::BCaterpillar(std::vector<int> x)
     }
 }
 
+BCaterpillar::BCaterpillar(const Caterpillar* c)
+: Caterpillar(c->get_x()) {
+    this->x_class = 0;
+    for (int i=1; i<x.size() - 1; i++) {
+        if (x[i]) {
+            x[i] = 1;
+            this->x_class += 1 << (i - 1);
+        }
+    }
+}
+
 BCaterpillar::~BCaterpillar() {}
 
 unsigned int BCaterpillar::get_x_class() const {
@@ -249,9 +260,7 @@ BCaterpillarNimFileManager* BCaterpillarNimCalculator::get_file_manager() const 
 }
 
 unsigned int BCaterpillarNimCalculator::calculate_nim(const Caterpillar *c) {
-    const BCaterpillar *bc = dynamic_cast<const BCaterpillar*>(c);
-    if (bc == nullptr)
-        return CaterpillarNimCalculator::calculate_nim(c);
+    const BCaterpillar *bc = new BCaterpillar(c);
     
     BCaterpillarNimFile *file;
     file = file_manager->get_file(bc->get_x_class());
