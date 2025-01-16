@@ -1,6 +1,7 @@
 #ifndef KAYLES_CATERPILLAR_H
 #define KAYLES_CATERPILLAR_H
 
+#include "verbose.h"
 #include <iostream>
 #include <vector>
 #include <set>
@@ -34,9 +35,10 @@ public:
 class CaterpillarNimCalculator {
 protected:
     AbstractCaterpillarFactory *factory;
+    VerboseClass *verb;
 public:
-    CaterpillarNimCalculator();
-    CaterpillarNimCalculator(AbstractCaterpillarFactory *factory);
+    CaterpillarNimCalculator(AbstractCaterpillarFactory *factory, bool verbose = false);
+    CaterpillarNimCalculator(bool verbose = false);
     virtual ~CaterpillarNimCalculator();
 
     unsigned int calculate_play_nim(const Caterpillar* c, int i, bool p);

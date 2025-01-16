@@ -43,16 +43,18 @@ Caterpillar* CaterpillarFactory::create(std::vector<int> x) {
     return new Caterpillar(x);
 }
 
-CaterpillarNimCalculator::CaterpillarNimCalculator() {
-    factory = new CaterpillarFactory();
+CaterpillarNimCalculator::CaterpillarNimCalculator(AbstractCaterpillarFactory *factory, bool verbose) {
+    this->factory = factory;
+    this->verb = new VerboseClass(verbose);
 }
 
-CaterpillarNimCalculator::CaterpillarNimCalculator(AbstractCaterpillarFactory *factory) {
-    this->factory = factory;
+CaterpillarNimCalculator::CaterpillarNimCalculator(bool verbose)
+: CaterpillarNimCalculator(new CaterpillarFactory(), verbose) {
 }
 
 CaterpillarNimCalculator::~CaterpillarNimCalculator() {
     delete factory;
+    delete verb;
 }
 
 unsigned int CaterpillarNimCalculator::calculate_play_nim(const Caterpillar* c, int i, bool p) {

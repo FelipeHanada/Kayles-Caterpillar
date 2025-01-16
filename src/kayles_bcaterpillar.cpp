@@ -30,8 +30,9 @@ BCaterpillar::BCaterpillar(std::vector<int> x)
 BCaterpillar::BCaterpillar(const Caterpillar* c)
 : Caterpillar(c->get_x()) {
     this->x_class = 0;
+    x[0] = x[x.size() - 1] = 0;
     for (int i=1; i<x.size() - 1; i++) {
-        if (x[i]) {
+        if (x[i] % 2) {
             x[i] = 1;
             this->x_class += 1 << (i - 1);
         }
@@ -56,13 +57,15 @@ BCaterpillarNimFile::BCaterpillarNimFile(
     std::string filename,
     unsigned int x_class,
     size_t cache_size,
-    bool start_open
+    bool start_open,
+    bool verbose
 ) {
     this->filename = filename;
     this->x_class = x_class;
     this->offset = (x_class == 0) ? 0 : 3 + log2(x_class);
     this->cache_size = cache_size;
     this->cache = std::vector<unsigned int>(cache_size);
+    this->verb = new VerboseClass(verbose);
 
     std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
     open();
@@ -72,8 +75,11 @@ BCaterpillarNimFile::BCaterpillarNimFile(
     int cache_loaded = 0;
     for (int i=0; i<cache_size && i<size(); i++, cache_loaded++)
         cache[i] = read(i);
-    std::cout << "Cache loaded: " << cache_loaded << " of " << cache_size << "\n";
-    
+
+    std::stringstream ss;
+    ss << "Cache loaded: " << cache_loaded << " of " << cache_size << "\n";
+    verb->print(ss.str());
+
     if (!start_open)
         close();
 }
@@ -81,20 +87,23 @@ BCaterpillarNimFile::BCaterpillarNimFile(
 BCaterpillarNimFile::~BCaterpillarNimFile() {
     if (is_open())
         close();
+    delete verb;
 }
 
 void BCaterpillarNimFile::open() {
-    std::cout << "Opening file: " << filename << "\n";
-
+    std::stringstream ss;
+    ss << "Opening file: " << filename << "\n";
     file.open(filename, std::ios::in | std::ios::out | std::ios::binary);
     if (!file.is_open()) {
-        std::cout << "Failed. Trying to create file: " << filename << "\n";
+        ss << "Failed. Trying to create file: " << filename << "\n";
         file.clear();
         file.open(filename, std::ios::out | std::ios::binary);
         file.close();
-        std::cout << "Reopening file: " << filename << "\n";
+        ss << "Reopening file: " << filename << "\n";
         file.open(filename, std::ios::in | std::ios::out | std::ios::binary);
     }
+    verb->print(ss.str());
+
     if (!is_open()) {
         std::cerr << "Error opening file: " << filename << "\n";
         exit(EXIT_FAILURE);
@@ -106,11 +115,14 @@ bool BCaterpillarNimFile::is_open() {
 }
 
 void BCaterpillarNimFile::close() {
+    std::stringstream ss;
     if (!is_open()) {
-        std::cout << "File already closed: " << filename << "\n";
+        ss << "File already closed: " << filename << "\n";
+        verb->print(ss.str());
         return;
     }
-    std::cout << "Closing file: " << filename << "\n";
+    ss << "Closing file: " << filename << "\n";
+    verb->print(ss.str());
     file.close();
 }
     
@@ -188,16 +200,19 @@ void BCaterpillarNimFile::write(unsigned int nim) {
 BCaterpillarNimFileManager::BCaterpillarNimFileManager(
     std::string file_prefix,
     int max_open_file,
-    size_t default_cache_size
+    size_t default_cache_size,
+    bool verbose
 ) {
     this->file_prefix = file_prefix;
     this->max_open_file = max_open_file;
     this->default_cache_size = default_cache_size;
+    this->verb = new VerboseClass(verbose);
 }
 
 BCaterpillarNimFileManager::~BCaterpillarNimFileManager() {
     for (auto file : files)
         delete file;
+    delete verb;
 }
 
 void BCaterpillarNimFileManager::open_file(unsigned int x) {
@@ -221,7 +236,8 @@ BCaterpillarNimFile* BCaterpillarNimFileManager::get_file(unsigned int x) {
             file_prefix + (std::to_string(i)),
             i,
             default_cache_size,
-            false
+            false,
+            verb->get_verbose()
         ));
 
     return files[x];
@@ -240,15 +256,22 @@ void BCaterpillarNimFileManager::close() {
 BCaterpillarNimCalculator::BCaterpillarNimCalculator(
     std::string file_prefix, 
     int max_open_file,
-    size_t default_cache_size
-) : CaterpillarNimCalculator(new BCaterpillarFactory())
+    size_t default_cache_size,
+    bool verbose
+) : CaterpillarNimCalculator(new BCaterpillarFactory(), verbose)
 {
-    this->file_manager = new BCaterpillarNimFileManager(file_prefix, max_open_file, default_cache_size);
+    this->file_manager = new BCaterpillarNimFileManager(file_prefix, max_open_file, default_cache_size, verbose);
 
     BCaterpillarNimFile *file0 = file_manager->get_file(0);
     file_manager->open_file(0);
     file0->write(0, 0);
     file0->write(1, 1);
+}
+
+BCaterpillarNimCalculator::BCaterpillarNimCalculator(
+    std::string file_prefix, 
+    bool verbose
+) : BCaterpillarNimCalculator(file_prefix, DEFAULT_MAX_OPEN_FILE, DEFAULT_CACHE_SIZE, verbose) {
 }
 
 BCaterpillarNimCalculator::~BCaterpillarNimCalculator() {
@@ -285,8 +308,7 @@ unsigned int BCaterpillarNimCalculator::calculate_nim(const Caterpillar *c) {
     return nim;
 }
 
-void BCaterpillar_calculate(
-    BCaterpillarNimCalculator* calculator,
+void BCaterpillarNimCalculator::calculate_until(
     unsigned int x_class,
     const std::function<bool(int, std::chrono::milliseconds)> &stop_condition,
     const std::chrono::milliseconds &display_interval
@@ -294,7 +316,7 @@ void BCaterpillar_calculate(
     auto start = std::chrono::high_resolution_clock::now();
     auto next_display_time = start + display_interval;
 
-    BCaterpillarNimFileManager *file_manager = calculator->get_file_manager();
+    BCaterpillarNimFileManager *file_manager = get_file_manager();
     BCaterpillarNimFile *file = file_manager->get_file(x_class);
 
     int n = file->get_n(file->size());
@@ -302,16 +324,20 @@ void BCaterpillar_calculate(
     auto now = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start);
 
-    std::cout << "Starting calculations from n=" << n << "\n";
+    std::stringstream ss;
+    ss << "Starting calculations from n=" << n << "\n";
+
     while (!stop_condition(n, elapsed)) {
         if (now >= next_display_time) {
-            std::cout << "Time elapsed: " << elapsed.count() << " millisecond(s). ";
-            std::cout << "Last calculated n=" << n - 1 << "\n";
+            ss << "Time elapsed: " << elapsed.count() << " millisecond(s). ";
+            ss << "Last calculated n=" << n - 1 << "\n";
             next_display_time += display_interval;
         }
+        verb->print(ss.str());
+        ss.clear();
 
         Caterpillar *c = new BCaterpillar(n, x_class);
-        calculator->calculate_nim(c);
+        calculate_nim(c);
         delete c;
         n++;
 
@@ -319,17 +345,16 @@ void BCaterpillar_calculate(
         elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start);
     }
 
-    std::cout << "End of calculations. Last calculated n=" << n - 1 << "\n";
+    ss << "End of calculations. Last calculated n=" << n - 1 << "\n";
+    verb->print(ss.str());
 }
 
-void BCaterpillar_calculate_by_n(
-    BCaterpillarNimCalculator *calculator,
+void BCaterpillarNimCalculator::calculate_by_n(
     unsigned int x_class,
     unsigned int n_limit,
     const std::chrono::milliseconds &display_interval
 ) {
-    BCaterpillar_calculate(
-        calculator,
+    calculate_until(
         x_class,
         [n_limit](int n, std::chrono::milliseconds elapsed) {
             return n >= n_limit;
@@ -338,14 +363,12 @@ void BCaterpillar_calculate_by_n(
     );
 }
 
-void BCaterpillar_calculate_by_time(
-    BCaterpillarNimCalculator *calculator,
+void BCaterpillarNimCalculator::calculate_by_time(
     unsigned int x_class,
     const std::chrono::milliseconds &time_limit,
     const std::chrono::milliseconds &display_interval
 ) {
-    BCaterpillar_calculate(
-        calculator,
+    calculate_until(
         x_class,
         [time_limit](int n, std::chrono::milliseconds elapsed) {
             return elapsed >= time_limit;

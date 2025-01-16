@@ -42,12 +42,14 @@ class BCaterpillarNimFile {
     size_t offset;
     size_t cache_size;
     std::vector<unsigned int> cache;
+    VerboseClass* verb;
 public:
     BCaterpillarNimFile(
         std::string filename,
         unsigned int x_class,
         size_t cache_size = DEFAULT_CACHE_SIZE,
-        bool start_open = true
+        bool start_open = true,
+        bool verbose = false
     );
     ~BCaterpillarNimFile();
 
@@ -74,11 +76,13 @@ class BCaterpillarNimFileManager {
     std::string file_prefix;
     int max_open_file;
     size_t default_cache_size;
+    VerboseClass* verb;
 public:
     BCaterpillarNimFileManager(
         std::string file_prefix,
         int max_open_file = DEFAULT_MAX_OPEN_FILE,
-        size_t default_cache_size = DEFAULT_CACHE_SIZE
+        size_t default_cache_size = DEFAULT_CACHE_SIZE,
+        bool verbose = false
     );
     ~BCaterpillarNimFileManager();
 
@@ -94,33 +98,35 @@ public:
     BCaterpillarNimCalculator(
         std::string file_prefix, 
         int max_open_file = DEFAULT_MAX_OPEN_FILE,
-        size_t default_cache_size = DEFAULT_CACHE_SIZE
+        size_t default_cache_size = DEFAULT_CACHE_SIZE,
+        bool verbose = false
+    );
+    BCaterpillarNimCalculator(
+        std::string file_prefix, 
+        bool verbose
     );
     ~BCaterpillarNimCalculator();
 
     BCaterpillarNimFileManager* get_file_manager() const;
     unsigned int calculate_nim(const Caterpillar *c) override;
+
+    void calculate_until(
+        unsigned int x_class,
+        const std::function<bool(int, std::chrono::milliseconds)> &stop_condition,
+        const std::chrono::milliseconds &display_interval = std::chrono::minutes(1)
+    );
+
+    void calculate_by_n(
+        unsigned int x_class,
+        unsigned int n_limit,
+        const std::chrono::milliseconds &display_interval = std::chrono::minutes(1)
+    );
+
+    void calculate_by_time(
+        unsigned int x_class,
+        const std::chrono::milliseconds &time_limit,
+        const std::chrono::milliseconds &display_interval = std::chrono::minutes(1)
+    );
 };
-
-void BCaterpillar_calculate(
-    BCaterpillarNimCalculator* calculator,
-    unsigned int x_class,
-    const std::function<bool(int, std::chrono::milliseconds)> &stop_condition,
-    const std::chrono::milliseconds &display_interval = std::chrono::minutes(1)
-);
-
-void BCaterpillar_calculate_by_n(
-    BCaterpillarNimCalculator *calculator,
-    unsigned int x_class,
-    unsigned int n_limit,
-    const std::chrono::milliseconds &display_interval = std::chrono::minutes(1)
-);
-
-void BCaterpillar_calculate_by_time(
-    BCaterpillarNimCalculator *calculator,
-    unsigned int x_class,
-    const std::chrono::milliseconds &time_limit,
-    const std::chrono::milliseconds &display_interval = std::chrono::minutes(1)
-);
 
 #endif // KAYLES_BCATERPILLAR_H
