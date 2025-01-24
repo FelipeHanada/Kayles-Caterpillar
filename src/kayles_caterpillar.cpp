@@ -28,11 +28,13 @@ const std::vector<int>& Caterpillar::get_x() const {
     return x;
 }
 
-void Caterpillar::print() const {
-    std::cout << "(";
+std::string Caterpillar::str() const {
+    std::stringstream ss;
+    ss << "(";
     for (size_t i = 0; i < x.size(); ++i)
-        std::cout << x[i] << " ";
-    std::cout << ")";
+        ss << x[i] << " ";
+    ss << ")";
+    return ss.str();
 }
 
 Caterpillar* CaterpillarFactory::create(int n) {
@@ -43,18 +45,16 @@ Caterpillar* CaterpillarFactory::create(std::vector<int> x) {
     return new Caterpillar(x);
 }
 
-CaterpillarNimCalculator::CaterpillarNimCalculator(AbstractCaterpillarFactory *factory, bool verbose) {
+CaterpillarNimCalculator::CaterpillarNimCalculator(AbstractCaterpillarFactory *factory) {
     this->factory = factory;
-    this->verb = new VerboseClass(verbose);
 }
 
-CaterpillarNimCalculator::CaterpillarNimCalculator(bool verbose)
-: CaterpillarNimCalculator(new CaterpillarFactory(), verbose) {
+CaterpillarNimCalculator::CaterpillarNimCalculator()
+: CaterpillarNimCalculator(new CaterpillarFactory()) {
 }
 
 CaterpillarNimCalculator::~CaterpillarNimCalculator() {
     delete factory;
-    delete verb;
 }
 
 unsigned int CaterpillarNimCalculator::calculate_play_nim(const Caterpillar* c, int i, bool p) {
@@ -170,11 +170,9 @@ unsigned int CaterpillarNimCalculator::calculate_play_nim(const Caterpillar* c, 
     }
 }
 
-unsigned int CaterpillarNimCalculator::calculate_nim(const Caterpillar *c) {
-    if (c->size() == 0) return 0;
-
+std::set<unsigned int> CaterpillarNimCalculator::get_mex_set(const Caterpillar *c) {
     const std::vector<int> &x = c->get_x();
-
+    
     std::set<unsigned int> s;
     s.emplace(calculate_play_nim(c, 0, true));
     s.emplace(calculate_play_nim(c, c->size() - 1, true));
@@ -184,10 +182,30 @@ unsigned int CaterpillarNimCalculator::calculate_nim(const Caterpillar *c) {
             s.emplace(calculate_play_nim(c, i, false));
     }
 
+    return s;
+}
+
+unsigned int CaterpillarNimCalculator::calculate_nim(const Caterpillar *c, const VerboseClass &verb) {
+    if (c->size() == 0) return 0;
+
+    verb.print("================================");
+    verb.print("Calculating nim for ");
+    verb.print(c->str());
+    verb.print("\n");
+
+    std::set<unsigned int> s = get_mex_set(c);
+
+    verb.print("mex_set = {");
     //  calcula mex
     unsigned int nim = 0;
-    for (auto it = s.begin(); it != s.end() && *it == nim; it++)
+    for (auto it = s.begin(); it != s.end() && *it == nim; it++) {
+        verb.print(std::to_string(*it) + " ");
         nim++;
+    }
+    verb.print("}");
+
+    verb.print("nim = " + std::to_string(nim));
+    verb.print("================================");
 
     return nim;
 }

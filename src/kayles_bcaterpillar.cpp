@@ -6,7 +6,7 @@ BCaterpillar::BCaterpillar(int n, unsigned int x)
     int j = std::min(n - 2, (int) sizeof(x) * 8);
     this->x_class = 0;
     for (int i = 0; i < j; i++) {
-        this->x[i + 1] = x & (1 << i);
+        this->x[i + 1] = (x & (1 << i)) ? 1 : 0;
         this->x_class += (this->x[i + 1]) ? (1 << i) : 0;
     }
 }
@@ -201,12 +201,14 @@ BCaterpillarNimFileManager::BCaterpillarNimFileManager(
     std::string file_prefix,
     int max_open_file,
     size_t default_cache_size,
-    bool verbose
+    bool verbose,
+    bool file_verbose
 ) {
     this->file_prefix = file_prefix;
     this->max_open_file = max_open_file;
     this->default_cache_size = default_cache_size;
     this->verb = new VerboseClass(verbose);
+    this->file_verbose = file_verbose;
 }
 
 BCaterpillarNimFileManager::~BCaterpillarNimFileManager() {
@@ -237,7 +239,7 @@ BCaterpillarNimFile* BCaterpillarNimFileManager::get_file(unsigned int x) {
             i,
             default_cache_size,
             false,
-            verb->get_verbose()
+            file_verbose
         ));
 
     return files[x];
@@ -256,22 +258,15 @@ void BCaterpillarNimFileManager::close() {
 BCaterpillarNimCalculator::BCaterpillarNimCalculator(
     std::string file_prefix, 
     int max_open_file,
-    size_t default_cache_size,
-    bool verbose
-) : CaterpillarNimCalculator(new BCaterpillarFactory(), verbose)
+    size_t default_cache_size
+) : CaterpillarNimCalculator(new BCaterpillarFactory())
 {
-    this->file_manager = new BCaterpillarNimFileManager(file_prefix, max_open_file, default_cache_size, verbose);
+    this->file_manager = new BCaterpillarNimFileManager(file_prefix, max_open_file, default_cache_size);
 
     BCaterpillarNimFile *file0 = file_manager->get_file(0);
     file_manager->open_file(0);
     file0->write(0, 0);
     file0->write(1, 1);
-}
-
-BCaterpillarNimCalculator::BCaterpillarNimCalculator(
-    std::string file_prefix, 
-    bool verbose
-) : BCaterpillarNimCalculator(file_prefix, DEFAULT_MAX_OPEN_FILE, DEFAULT_CACHE_SIZE, verbose) {
 }
 
 BCaterpillarNimCalculator::~BCaterpillarNimCalculator() {
@@ -282,7 +277,7 @@ BCaterpillarNimFileManager* BCaterpillarNimCalculator::get_file_manager() const 
     return file_manager;
 }
 
-unsigned int BCaterpillarNimCalculator::calculate_nim(const Caterpillar *c) {
+unsigned int BCaterpillarNimCalculator::calculate_nim(const Caterpillar *c, const VerboseClass &verb) {
     const BCaterpillar *bc = new BCaterpillar(c);
     
     BCaterpillarNimFile *file;
@@ -301,7 +296,7 @@ unsigned int BCaterpillarNimCalculator::calculate_nim(const Caterpillar *c) {
     //  certifica-se que o BCaterpillar anterior já foi calculado
     //  para manter a sequencialidade do arquivo
 
-    unsigned int nim = CaterpillarNimCalculator::calculate_nim(c);
+    unsigned int nim = CaterpillarNimCalculator::calculate_nim(c, verb);
 
     file_manager->open_file(bc->get_x_class());
     file->write(nim);
@@ -311,7 +306,8 @@ unsigned int BCaterpillarNimCalculator::calculate_nim(const Caterpillar *c) {
 void BCaterpillarNimCalculator::calculate_until(
     unsigned int x_class,
     const std::function<bool(int, std::chrono::milliseconds)> &stop_condition,
-    const std::chrono::milliseconds &display_interval
+    const std::chrono::milliseconds &display_interval,
+    const VerboseClass &verb
 ) {
     auto start = std::chrono::high_resolution_clock::now();
     auto next_display_time = start + display_interval;
@@ -333,7 +329,7 @@ void BCaterpillarNimCalculator::calculate_until(
             ss << "Last calculated n=" << n - 1 << "\n";
             next_display_time += display_interval;
         }
-        verb->print(ss.str());
+        verb.print(ss.str());
         ss.clear();
 
         Caterpillar *c = new BCaterpillar(n, x_class);
@@ -346,33 +342,37 @@ void BCaterpillarNimCalculator::calculate_until(
     }
 
     ss << "End of calculations. Last calculated n=" << n - 1 << "\n";
-    verb->print(ss.str());
+    verb.print(ss.str());
 }
 
 void BCaterpillarNimCalculator::calculate_by_n(
     unsigned int x_class,
     unsigned int n_limit,
-    const std::chrono::milliseconds &display_interval
+    const std::chrono::milliseconds &display_interval,
+    const VerboseClass &verb
 ) {
     calculate_until(
         x_class,
         [n_limit](int n, std::chrono::milliseconds elapsed) {
             return n >= n_limit;
         },
-        display_interval
+        display_interval,
+        verb
     );
 }
 
 void BCaterpillarNimCalculator::calculate_by_time(
     unsigned int x_class,
     const std::chrono::milliseconds &time_limit,
-    const std::chrono::milliseconds &display_interval
+    const std::chrono::milliseconds &display_interval,
+    const VerboseClass &verb
 ) {
     calculate_until(
         x_class,
         [time_limit](int n, std::chrono::milliseconds elapsed) {
             return elapsed >= time_limit;
         },
-        display_interval
+        display_interval,
+        verb
     );
 }

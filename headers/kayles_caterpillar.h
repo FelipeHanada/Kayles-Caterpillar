@@ -2,7 +2,8 @@
 #define KAYLES_CATERPILLAR_H
 
 #include "verbose.h"
-#include <iostream>
+#include <sstream>
+#include <string>
 #include <vector>
 #include <set>
 #include <math.h>
@@ -17,7 +18,7 @@ public:
 
     size_t size() const;
     const std::vector<int>& get_x() const;
-    void print() const;
+    std::string str() const;
 };
 
 class AbstractCaterpillarFactory {
@@ -35,14 +36,14 @@ public:
 class CaterpillarNimCalculator {
 protected:
     AbstractCaterpillarFactory *factory;
-    VerboseClass *verb;
 public:
-    CaterpillarNimCalculator(AbstractCaterpillarFactory *factory, bool verbose = false);
-    CaterpillarNimCalculator(bool verbose = false);
+    CaterpillarNimCalculator(AbstractCaterpillarFactory *factory);
+    CaterpillarNimCalculator();
     virtual ~CaterpillarNimCalculator();
 
     unsigned int calculate_play_nim(const Caterpillar* c, int i, bool p);
-    virtual unsigned int calculate_nim(const Caterpillar *c);
+    std::set<unsigned int> get_mex_set(const Caterpillar *c);
+    virtual unsigned int calculate_nim(const Caterpillar *c, const VerboseClass &verb = VerboseClass(false));
 };
 
 #endif // KAYLES_CATERPILLAR_H

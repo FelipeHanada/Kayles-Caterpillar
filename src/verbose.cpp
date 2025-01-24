@@ -7,11 +7,11 @@ VerboseClass::VerboseClass(bool verbose, std::ostream *os) {
 
 VerboseClass::~VerboseClass() {}
 
-bool VerboseClass::get_verbose() {
+bool VerboseClass::get_verbose() const {
     return this->verbose;
 }
 
-bool VerboseClass::print(std::string s) {
+bool VerboseClass::print(std::string s) const {
     if (get_verbose())
         *(os)<< s;
     return get_verbose();

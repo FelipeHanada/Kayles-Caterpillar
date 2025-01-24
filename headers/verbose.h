@@ -10,8 +10,8 @@ class VerboseClass {
 public:
     VerboseClass(bool verbose, std::ostream* os = &(std::cout));
     ~VerboseClass();
-    bool get_verbose();
-    bool print(std::string s);
+    bool get_verbose() const;
+    bool print(std::string s) const;
 };
 
 #endif  // VERBOSE_CLASS_H
