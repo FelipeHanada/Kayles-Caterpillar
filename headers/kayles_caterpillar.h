@@ -14,6 +14,7 @@ protected:
 public:
     Caterpillar(int n);
     Caterpillar(std::vector<int> x);
+    Caterpillar(const Caterpillar *c);
     virtual ~Caterpillar();
 
     size_t size() const;

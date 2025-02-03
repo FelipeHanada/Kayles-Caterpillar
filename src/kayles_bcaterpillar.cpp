@@ -90,6 +90,10 @@ BCaterpillarNimFile::~BCaterpillarNimFile() {
     delete verb;
 }
 
+size_t BCaterpillarNimFile::get_offset() const {
+    return offset;
+}
+
 void BCaterpillarNimFile::open() {
     std::stringstream ss;
     ss << "Opening file: " << filename << "\n";

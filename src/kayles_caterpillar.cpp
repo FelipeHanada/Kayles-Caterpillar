@@ -18,6 +18,10 @@ Caterpillar::Caterpillar(std::vector<int> x) {
     this->x = x;
 }
 
+Caterpillar::Caterpillar(const Caterpillar *c) {
+    this->x = c->get_x();
+}
+
 Caterpillar::~Caterpillar() {}
 
 size_t Caterpillar::size() const {

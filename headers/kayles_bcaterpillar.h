@@ -53,6 +53,8 @@ public:
     );
     ~BCaterpillarNimFile();
 
+    size_t get_offset() const;
+
     void open();
     bool is_open();
     void close();

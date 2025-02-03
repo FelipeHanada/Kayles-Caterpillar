@@ -3,8 +3,8 @@ import numpy as np
 from math import log2
 
 DIR_PATH = 'data'
-INPUT_FILE_PREFIX = 'caterpillar_'
-X = 176
+INPUT_FILE_PREFIX = 'caterpillar2_'
+X = 0
 N = 1000
 
 if __name__ == '__main__':
