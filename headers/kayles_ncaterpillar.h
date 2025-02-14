@@ -39,7 +39,7 @@ public:
     NCaterpillar(std::vector<int> x)
     : Caterpillar(x) {
         this->x_class = 0;
-        for (int i=1; i<x.size() - 1; i++) {
+        for (int i=1; i<(int)x.size() - 1; i++) {
             this->x[i] = std::min(this->x[i], N_REDUCED);
             this->x_class += this->x[i] * std::pow(N_REDUCED, i - 1);
         }
@@ -47,7 +47,7 @@ public:
     NCaterpillar(const Caterpillar *c)
     : Caterpillar(c) {
         this->x_class = 0;
-        for (int i=1; i<this->x.size() - 1; i++) {
+        for (int i=1; i<(int)this->x.size() - 1; i++) {
             this->x[i] = std::min(this->x[i], N_REDUCED);
             this->x_class += this->x[i] * std::pow(N_REDUCED, i - 1);
         }

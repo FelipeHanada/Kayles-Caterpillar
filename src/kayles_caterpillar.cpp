@@ -118,7 +118,7 @@ unsigned int CaterpillarNimCalculator::calculate_play_nim(const Caterpillar* c, 
         delete c1;
         if (x[i] % 2)
             nim ^= 1;
-        return calculate_nim(c1);
+        return nim;
     }
 
     if (i == c->size() - 2) {
@@ -182,7 +182,7 @@ std::set<unsigned int> CaterpillarNimCalculator::get_mex_set(const Caterpillar *
     s.emplace(calculate_play_nim(c, c->size() - 1, true));
     for (int i=1; i<c->size() - 1; i++) {
         s.emplace(calculate_play_nim(c, i, true));
-        if (x[i - 1])
+        if (x[i])
             s.emplace(calculate_play_nim(c, i, false));
     }
 

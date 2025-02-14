@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import log2
 
-DIR_PATH = 'data'
-INPUT_FILE_PREFIX = 'caterpillar_nim_'
-FILES = (4, 5, 6)
+DIR_PATH = 'data/reduce3'
+INPUT_FILE_PREFIX = 'nim_file_'
+FILES = (2, 5, 6, 7, 8, 11)
 N = 1000
 
 if __name__ == '__main__':
@@ -22,10 +22,9 @@ if __name__ == '__main__':
     for i in range(len(FILES)):
         x = FILES[i]
         nimber = nimbers[i]
-        n_0 = 0 if i == 0 else 3 + int(log2(x))
 
-        axs[i].plot(range(n_0, n_0 + len(nimber)), nimber)
-        axs[i].set_xlabel('n')
+        axs[i].plot(range(len(nimber)), nimber)
+        axs[i].set_xlabel('index')
         axs[i].set_ylabel(f'C(n, {x}) eq nimber')
                 
         axs[i].xaxis.set_major_locator(plt.MaxNLocator(integer=True))
