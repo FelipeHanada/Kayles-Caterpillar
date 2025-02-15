@@ -257,7 +257,7 @@ public:
     }
     ~NCaterpillarNimFileManager() {
         for (auto file : files)
-        delete file;
+            delete file;
         delete verb;
     }
 
@@ -368,17 +368,18 @@ public:
         auto now = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start);
 
-        std::stringstream ss;
-        ss << "Starting calculations from n=" << n << "\n";
+        std::stringstream ss_start;
+        ss_start << "Starting calculations from n=" << n << "\n";
+        verb.print(ss_start.str());
 
         while (!stop_condition(n, elapsed)) {
             if (now >= next_display_time) {
-                ss << "Time elapsed: " << elapsed.count() << " millisecond(s). ";
-                ss << "Last calculated n=" << n - 1 << "\n";
+                std::stringstream ss_display;
+                ss_display << "Time elapsed: " << elapsed.count() << " millisecond(s). ";
+                ss_display << "Last calculated n=" << n - 1 << "\n";
+                verb.print(ss_display.str());
                 next_display_time += display_interval;
             }
-            verb.print(ss.str());
-            ss.clear();
 
             Caterpillar *c = new NCaterpillar<N_REDUCED>(n, x_class);
             calculate_nim(c);
@@ -389,8 +390,9 @@ public:
             elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start);
         }
 
-        ss << "End of calculations. Last calculated n=" << n - 1 << "\n";
-        verb.print(ss.str());
+        std::stringstream ss_end;
+        ss_end << "End of calculations. Last calculated n=" << n - 1 << "\n";
+        verb.print(ss_end.str());
     }
 
     void calculate_by_n(
