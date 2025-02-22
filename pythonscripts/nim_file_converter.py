@@ -1,4 +1,4 @@
-from nim_reader import NimFileReader
+from nim_file_reader import NimFileReader
 import os
 
 SRC_DIR = "data/reduce3newfileformat/"

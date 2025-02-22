@@ -78,12 +78,12 @@ public:
         delete factory;
     }
 
-    unsigned int calculate_play_nim(const Caterpillar* c, int i, bool p) {
+    unsigned int calculate_play_nim(const Caterpillar* c, int i, bool leaf) {
         /*
         Calcula o nimero da posicao apos uma jogada
         c: Caterpillar jogado
         i: vértice jogado
-        p: jogada no vértice caminho / no vértice solto
+        p: no vértice solto
             (se a jogada não for possível, será jogado no caminho)
         */
         
@@ -91,6 +91,7 @@ public:
             return 0;
     
         const std::vector<unsigned int> &x = c->get_x();
+        if (x[i] == 0) leaf = false;
     
         if (i == 0) {
             std::vector<unsigned int> x1(x.begin() + 2, x.end());
@@ -112,30 +113,44 @@ public:
             return nim;
         }
     
-        if (x[i] == 0)
-            p = true;
-    
         if (i == 1) {
-            std::vector<unsigned int> x1(x.begin() + 2, x.end());
+            if (c->size() == 3)
+                return 0;
+            
+            std::vector<unsigned int> x1(x.begin() + 3, x.end());
             Caterpillar *c1 = factory->create(x1);
             unsigned int nim = calculate_nim(c1);
             delete c1;
-            if (x[i] % 2)
+            if (x[2] % 2)
                 nim ^= 1;
             return nim;
         }
-    
+        
         if (i == c->size() - 2) {
-            std::vector<unsigned int> x1(x.begin(), x.end() - 2);
+            std::vector<unsigned int> x1(x.begin(), x.end() - 3);
             Caterpillar *c1 = factory->create(x1);
             unsigned int nim = calculate_nim(c1);
             delete c1;
-            if (x[i] % 2)
+            if (x.rbegin()[2] % 2)
                 nim ^= 1;
             return nim;
         }
     
-        if (p) {
+        if (leaf) {
+            std::vector<unsigned int> x1(x.begin(), x.begin() + i);
+            Caterpillar *c1 = factory->create(x1);
+    
+            std::vector<unsigned int> x2(x.begin() + (i + 1), x.end());
+            Caterpillar *c2 = factory->create(x2);
+    
+            unsigned int nim = calculate_nim(c1) ^ calculate_nim(c2);
+            delete c1;
+            delete c2;
+            
+            if (x[i] % 2 == 0)
+                nim ^= 1;
+            return nim;
+        } else {
             std::vector<unsigned int> x1(x.begin(), x.begin() + (i - 1));
             Caterpillar *c1 = factory->create(x1);
     
@@ -149,20 +164,6 @@ public:
             if (x[i - 1] % 2)
                 nim ^= 1;
             if (x[i + 1] % 2)
-                nim ^= 1;
-            return nim;
-        } else {
-            std::vector<unsigned int> x1(x.begin(), x.begin() + i);
-            Caterpillar *c1 = factory->create(x1);
-    
-            std::vector<unsigned int> x2(x.begin() + (i + 1), x.end());
-            Caterpillar *c2 = factory->create(x2);
-    
-            unsigned int nim = calculate_nim(c1) ^ calculate_nim(c2);
-            delete c1;
-            delete c2;
-            
-            if (x[i] % 2 == 0)
                 nim ^= 1;
             return nim;
         }

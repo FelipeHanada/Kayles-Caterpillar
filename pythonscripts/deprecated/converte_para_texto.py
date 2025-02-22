@@ -1,5 +1,5 @@
-INPUTFILE = "data/reduce3texto/nim_file_2"
-OUTPUTFILE = "data/reduce3texto/nim_file_2teste.txt"
+INPUTFILE = "data/reduce3/nim_file_0"
+OUTPUTFILE = "data/reduce3texto/nim_file_0teste.txt"
 
 with open(INPUTFILE, "rb") as input_file, open(OUTPUTFILE, "w") as output_file:
     while True:
