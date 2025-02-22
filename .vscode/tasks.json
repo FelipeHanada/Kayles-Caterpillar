@@ -8,9 +8,8 @@
                 "-std=c++17",
                 "-fdiagnostics-color=always",
                 "-I",
-                "headers",
+                "src",
                 "-g",
-                "src/*.cpp",
                 "main.cpp",
                 "-o",
                 "out/main.exe"

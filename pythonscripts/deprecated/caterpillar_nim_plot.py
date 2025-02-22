@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import log2
 
-DIR_PATH = 'data/reduce3'
+DIR_PATH = 'data/reduce3teste'
 INPUT_FILE_PREFIX = 'nim_file_'
 X = 0
 N = 1000

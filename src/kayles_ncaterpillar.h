@@ -12,12 +12,12 @@
 #include <math.h>
 #include <functional>
 
-template<int N_REDUCED>
+template<unsigned int N_REDUCED>
 class NCaterpillar : public Caterpillar {
 protected:
     unsigned int x_class;
 public:
-    NCaterpillar(int n, unsigned int x)
+    NCaterpillar(unsigned int n, unsigned int x)
     : Caterpillar(n) {
         this->x_class = x;
         int i = 1;
@@ -32,11 +32,11 @@ public:
         if (this->x.back() > 0)
             this->x.push_back(0);
     }
-    NCaterpillar(int n)
+    NCaterpillar(unsigned int n)
     : Caterpillar(n) {
         this->x_class = 0;
     }
-    NCaterpillar(std::vector<int> x)
+    NCaterpillar(std::vector<unsigned int> x)
     : Caterpillar(x) {
         this->x_class = 0;
         for (int i=1; i<(int)x.size() - 1; i++) {
@@ -58,37 +58,70 @@ public:
     }
 };
 
-template<int N_REDUCED>
+template<unsigned int N_REDUCED>
 class NCaterpillarFactory : public CaterpillarFactory {
-    Caterpillar* create(int n) override {
+    Caterpillar* create(unsigned int n) override {
         return new NCaterpillar<N_REDUCED>(n);
     }
-    Caterpillar* create(std::vector<int> x) override {
+    Caterpillar* create(std::vector<unsigned int> x) override {
         return new NCaterpillar<N_REDUCED>(x);
     }
 };
 
+#define NIM_FILE_EXTENSION_NAME ".catnim"
 #define DEFAULT_CACHE_SIZE (1 << 20)
 #define DEFAULT_MAX_OPEN_FILE 10
 
-template<int N_REDUCED>
+template<unsigned int N_REDUCED>
 class NCaterpillarNimFile {
+    // HEADER STRUCTURE
+    const size_t HEADER_POS_N_REDUCED  = 0;
+    const size_t HEADER_SIZE_N_REDUCED = sizeof(unsigned int);
+    const size_t HEADER_POS_X_CLASS    = HEADER_POS_N_REDUCED + HEADER_SIZE_N_REDUCED;
+    const size_t HEADER_SIZE_X_CLASS   = sizeof(unsigned int);
+    const size_t HEADER_POS_N0         = HEADER_POS_X_CLASS + HEADER_SIZE_X_CLASS;
+    const size_t HEADER_SIZE_N0        = sizeof(unsigned int);
+    const size_t HEADER_SIZE           = HEADER_SIZE_N_REDUCED + HEADER_SIZE_X_CLASS + HEADER_SIZE_N0;
+    
     std::string filename;
     std::fstream file;
-    size_t file_size;
     unsigned int x_class;
-    size_t offset;
+    size_t n0;
     size_t cache_size;
     std::vector<unsigned int> cache;
     VerboseClass *verb;
-    unsigned int get_setup_offset(unsigned int x_class) {
-        if (x_class == 0) return 0;
-        
-        int i = 0;
+    unsigned int get_n0(unsigned int x_class) {
+        int i = 1;  // for case x_class = 0, that should return 3
+        x_class /= N_REDUCED;
         for (; x_class > 0; i++)
             x_class /= N_REDUCED;
 
         return 2 + i;
+    }
+    void write_headers() {
+        file.seekp(HEADER_POS_N_REDUCED);
+        unsigned int n_reduced = N_REDUCED;
+        file.write((char*)&n_reduced, HEADER_SIZE_N_REDUCED);
+
+        file.seekp(HEADER_POS_X_CLASS);
+        file.write((char*)&x_class, HEADER_SIZE_X_CLASS);
+
+        file.seekp(HEADER_POS_N0);
+        file.write((char*)&n0, HEADER_SIZE_N0);
+    }
+    size_t load_cache() {
+        size_t cache_loaded = 0;
+        for (int i=0; i<cache_size && i<size(); i++, cache_loaded++)
+            cache[i] = read(i);
+
+        std::stringstream ss;
+        ss << "Cache loaded: " << cache_loaded << " of " << cache_size << "\n";
+        verb->print(ss.str());
+
+        return cache_loaded;
+    }
+    size_t seek_pos(size_t pos) {
+        return HEADER_SIZE + pos * sizeof(unsigned int);
     }
 public:
     NCaterpillarNimFile(
@@ -96,29 +129,24 @@ public:
         unsigned int x_class,
         size_t cache_size = DEFAULT_CACHE_SIZE,
         bool start_open = true,
-        bool verbose = false
+        bool verbose = false,
+        bool create_directories = true
     ) {
         this->filename = filename;
         this->x_class = x_class;
-        
-        this->offset = get_setup_offset(x_class);
-
+        this->n0 = get_n0(x_class);
         this->cache_size = cache_size;
         this->cache = std::vector<unsigned int>(cache_size);
         this->verb = new VerboseClass(verbose);
 
-        std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
+        if (create_directories)
+            std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
+        file.open(filename, std::ios::out | std::ios::binary);
+        file.close();
         open();
-        file.seekg(0, std::ios::end);
-        file_size = file.tellg();
 
-        int cache_loaded = 0;
-        for (int i=0; i<cache_size && i<size(); i++, cache_loaded++)
-            cache[i] = read(i);
-
-        std::stringstream ss;
-        ss << "Cache loaded: " << cache_loaded << " of " << cache_size << "\n";
-        verb->print(ss.str());
+        write_headers();
+        load_cache();
 
         if (!start_open)
             close();
@@ -128,29 +156,12 @@ public:
             close();
         delete verb;
     }
-
-    size_t get_offset() const {
-        return offset;
+    size_t get_n0() const {
+        return n0;
     }
-
-    void open() {
-        std::stringstream ss;
-        ss << "Opening file: " << filename << "\n";
+    bool open() {
         file.open(filename, std::ios::in | std::ios::out | std::ios::binary);
-        if (!file.is_open()) {
-            ss << "Failed. Trying to create file: " << filename << "\n";
-            file.clear();
-            file.open(filename, std::ios::out | std::ios::binary);
-            file.close();
-            ss << "Reopening file: " << filename << "\n";
-            file.open(filename, std::ios::in | std::ios::out | std::ios::binary);
-        }
-        verb->print(ss.str());
-
-        if (!is_open()) {
-            std::cerr << "Error opening file: " << filename << "\n";
-            exit(EXIT_FAILURE);
-        }
+        return is_open();
     }
     bool is_open() {
         return file.is_open();
@@ -167,24 +178,22 @@ public:
         file.close();
     }
     size_t size() {
-        return file_size / sizeof(unsigned int);
+        file.seekg(0, std::ios::end);
+        return (file.tellg() - HEADER_SIZE) / sizeof(unsigned int);
     }
-
-    size_t hash(int n) {
-        if (n < offset) return 0;
-        return n - offset;
+    size_t hash(unsigned int n) {
+        if (n < n0) return 0;
+        return n - n0;
     }
-    int ihash(size_t index) {
-        return index + offset;
+    unsigned int ihash(size_t index) {
+        return index + n0;
     }
-
-    unsigned int is_calculated(unsigned int n) {
-        return hash(n) < this->size();
+    bool is_calculated(unsigned int n) {
+        return n >= n0 and hash(n) < this->size();
     }
     bool is_cached(unsigned int n) {
         return hash(n) < this->cache_size;
     }
-
     unsigned int read(size_t pos) {
         if (!this->is_open()) {
             std::cerr << "File not open" << "\n";
@@ -192,11 +201,29 @@ public:
         }
 
         unsigned int nim;
-        file.seekg(pos * sizeof(unsigned int));
+        file.seekg(seek_pos(pos));
         file.read((char*)&nim, sizeof(unsigned int));
         return nim;
     }
-        unsigned int read_cached(size_t pos) {
+    void write(size_t pos, unsigned int nim) {
+        if (!this->is_open()) {
+            std::cerr << "File not open" << "\n";
+            exit(EXIT_FAILURE);
+        }
+
+        if (pos > this->size())
+            pos = this->size();
+
+        if (pos < this->cache_size)
+            this->cache[pos] = nim;
+
+        this->file.seekp(seek_pos(pos));
+        this->file.write((char*)&nim, sizeof(unsigned int));
+    }
+    void write(unsigned int nim) {
+        this->write(this->size(), nim);
+    }
+    unsigned int read_cached(size_t pos) {
         if (pos < this->cache_size)
             return this->cache[pos];
 
@@ -205,33 +232,12 @@ public:
     unsigned int read_n(unsigned int n) {
         return read_cached(hash(n));
     }
-
-    void write(size_t pos, unsigned int nim) {
-        if (!this->is_open()) {
-            std::cerr << "File not open" << "\n";
-            exit(EXIT_FAILURE);
-        }
-
-        if (pos >= this->size()) {
-            pos = this->size();
-            file_size += sizeof(unsigned int);
-        }
-
-        if (pos < this->cache_size)
-            this->cache[pos] = nim;
-
-        this->file.seekp(pos * sizeof(unsigned int));
-        this->file.write((char*)&nim, sizeof(unsigned int));
-    }
     void write_n(unsigned int n, unsigned int nim) {
         write(hash(n), nim);
     }
-    void write(unsigned int nim) {
-        this->write(this->size(), nim);
-    }
 };
 
-template<int N_REDUCED>
+template<unsigned int N_REDUCED>
 class NCaterpillarNimFileManager {
     std::queue<unsigned int> open_files_queue;
     std::set<unsigned int> open_files;
@@ -278,7 +284,7 @@ public:
     NCaterpillarNimFile<N_REDUCED>* get_file(unsigned int x) {
         for (unsigned int i=files.size(); i <= x; i++)
             files.push_back(new NCaterpillarNimFile<N_REDUCED>(
-                file_prefix + (std::to_string(i)),
+                file_prefix + (std::to_string(i)) + NIM_FILE_EXTENSION_NAME,
                 i,
                 default_cache_size,
                 false,
@@ -298,7 +304,7 @@ public:
     }
 };
 
-template<int N_REDUCED>
+template<unsigned int N_REDUCED>
 class NCaterpillarNimCalculator : public CaterpillarNimCalculator {
 protected:
     NCaterpillarNimFileManager<N_REDUCED>* file_manager;
@@ -310,11 +316,6 @@ public:
     ) : CaterpillarNimCalculator(new NCaterpillarFactory<N_REDUCED>())
     {
         this->file_manager = new NCaterpillarNimFileManager<N_REDUCED>(file_prefix, max_open_file, default_cache_size);
-
-        NCaterpillarNimFile<N_REDUCED> *file0 = file_manager->get_file(0);
-        file_manager->open_file(0);
-        file0->write(0, 0);
-        file0->write(1, 1);
     }
 
     ~NCaterpillarNimCalculator() {
@@ -330,6 +331,10 @@ public:
         
         NCaterpillarNimFile<N_REDUCED> *file;
         file = file_manager->get_file(bc->get_x_class());
+
+        if (bc->size() < file->get_n0())
+            return CaterpillarNimCalculator::calculate_nim(c, verb);
+
         if (file->is_calculated(bc->size())) {
             if (!file->is_cached(bc->size()))
                 file_manager->open_file(bc->get_x_class());
@@ -345,7 +350,6 @@ public:
         //  para manter a sequencialidade do arquivo
 
         unsigned int nim = CaterpillarNimCalculator::calculate_nim(c, verb);
-
         file_manager->open_file(bc->get_x_class());
         file->write(nim);
         return nim;
@@ -362,8 +366,9 @@ public:
 
         NCaterpillarNimFileManager<N_REDUCED> *file_manager = get_file_manager();
         NCaterpillarNimFile<N_REDUCED> *file = file_manager->get_file(x_class);
+        file_manager->open_file(x_class);
 
-        int n = file->ihash(file->size());
+        unsigned int n = file->ihash(file->size());
         
         auto now = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start);
@@ -403,7 +408,7 @@ public:
     ) {
         calculate_until(
             x_class,
-            [n_limit](int n, std::chrono::milliseconds elapsed) {
+            [n_limit](unsigned int n, std::chrono::milliseconds elapsed) {
                 return n >= n_limit;
             },
             display_interval,
@@ -419,7 +424,7 @@ public:
     ) {
     calculate_until(
             x_class,
-            [time_limit](int n, std::chrono::milliseconds elapsed) {
+            [time_limit](unsigned int n, std::chrono::milliseconds elapsed) {
                 return elapsed >= time_limit;
             },
             display_interval,

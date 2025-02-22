@@ -4,8 +4,8 @@ from math import log2
 
 DIR_PATH = 'data/reduce3'
 INPUT_FILE_PREFIX = 'nim_file_'
-FILES = (2, 5, 6, 7, 8, 11)
-N = 1000
+FILES = (0, 2)
+N = 20
 
 if __name__ == '__main__':
     nimbers = []
