@@ -82,6 +82,8 @@ class NCaterpillarNimFile {
     const size_t HEADER_POS_N0         = HEADER_POS_X_CLASS + HEADER_SIZE_X_CLASS;
     const size_t HEADER_SIZE_N0        = sizeof(unsigned int);
     const size_t HEADER_SIZE           = HEADER_SIZE_N_REDUCED + HEADER_SIZE_X_CLASS + HEADER_SIZE_N0;
+
+    const size_t NIM_SIZE              = sizeof(unsigned int);
     
     std::string filename;
     std::fstream file;
@@ -121,7 +123,7 @@ class NCaterpillarNimFile {
         return cache_loaded;
     }
     size_t seek_pos(size_t pos) {
-        return HEADER_SIZE + pos * sizeof(unsigned int);
+        return HEADER_SIZE + pos * NIM_SIZE;
     }
 public:
     NCaterpillarNimFile(
@@ -141,9 +143,11 @@ public:
 
         if (create_directories)
             std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
-        file.open(filename, std::ios::out | std::ios::binary);
-        file.close();
-        open();
+        if (!open()) {
+            file.open(filename, std::ios::out | std::ios::binary);
+            file.close();
+            open();
+        }
 
         write_headers();
         load_cache();
@@ -179,7 +183,7 @@ public:
     }
     size_t size() {
         file.seekg(0, std::ios::end);
-        return (file.tellg() - HEADER_SIZE) / sizeof(unsigned int);
+        return (file.tellg() - HEADER_SIZE) / NIM_SIZE;
     }
     size_t hash(unsigned int n) {
         if (n < n0) return 0;
@@ -202,7 +206,7 @@ public:
 
         unsigned int nim;
         file.seekg(seek_pos(pos));
-        file.read((char*)&nim, sizeof(unsigned int));
+        file.read((char*)&nim, NIM_SIZE);
         return nim;
     }
     void write(size_t pos, unsigned int nim) {
@@ -218,7 +222,7 @@ public:
             this->cache[pos] = nim;
 
         this->file.seekp(seek_pos(pos));
-        this->file.write((char*)&nim, sizeof(unsigned int));
+        this->file.write((char*)&nim, NIM_SIZE);
     }
     void write(unsigned int nim) {
         this->write(this->size(), nim);
@@ -266,7 +270,6 @@ public:
             delete file;
         delete verb;
     }
-
     void open_file(unsigned int x) {
         if (open_files.find(x) == open_files.end()) {
             files[x]->open();
@@ -317,15 +320,12 @@ public:
     {
         this->file_manager = new NCaterpillarNimFileManager<N_REDUCED>(file_prefix, max_open_file, default_cache_size);
     }
-
     ~NCaterpillarNimCalculator() {
         delete file_manager;
     }
-
     NCaterpillarNimFileManager<N_REDUCED>* get_file_manager() const {
         return file_manager;
     }
-
     unsigned int calculate_nim(const Caterpillar *c, const VerboseClass &verb = VerboseClass(false)) {
         const NCaterpillar<N_REDUCED> *bc = new NCaterpillar<N_REDUCED>(c);
         
@@ -354,7 +354,6 @@ public:
         file->write(nim);
         return nim;
     }
-
     void calculate_until(
         unsigned int x_class,
         const std::function<bool(int, std::chrono::milliseconds)> &stop_condition,
@@ -367,7 +366,6 @@ public:
         NCaterpillarNimFileManager<N_REDUCED> *file_manager = get_file_manager();
         NCaterpillarNimFile<N_REDUCED> *file = file_manager->get_file(x_class);
         file_manager->open_file(x_class);
-
         unsigned int n = file->ihash(file->size());
         
         auto now = std::chrono::high_resolution_clock::now();
@@ -399,7 +397,6 @@ public:
         ss_end << "End of calculations. Last calculated n=" << n - 1 << "\n";
         verb.print(ss_end.str());
     }
-
     void calculate_by_n(
         unsigned int x_class,
         unsigned int n_limit,
@@ -415,14 +412,13 @@ public:
             verb
         );
     }
-
     void calculate_by_time(
         unsigned int x_class,
         const std::chrono::milliseconds &time_limit,
         const std::chrono::milliseconds &display_interval = std::chrono::minutes(1),
         const VerboseClass &verb = VerboseClass(false)
     ) {
-    calculate_until(
+        calculate_until(
             x_class,
             [time_limit](unsigned int n, std::chrono::milliseconds elapsed) {
                 return elapsed >= time_limit;

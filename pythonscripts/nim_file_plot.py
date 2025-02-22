@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import numpy as np
 from nim_file_reader import NimFileReader
 
 CATNIM_FILE_PATH = 'data/reduce3newfileformat/nim_file_0.catnim'
