@@ -121,6 +121,8 @@ public:
             Caterpillar *c1 = factory->create(x1);
             unsigned int nim = calculate_nim(c1);
             delete c1;
+            if (x[0] % 2)
+                nim ^= 1;
             if (x[2] % 2)
                 nim ^= 1;
             return nim;
@@ -131,6 +133,8 @@ public:
             Caterpillar *c1 = factory->create(x1);
             unsigned int nim = calculate_nim(c1);
             delete c1;
+            if (x.back() % 2)
+                nim ^= 1;
             if (x.rbegin()[2] % 2)
                 nim ^= 1;
             return nim;
@@ -172,12 +176,10 @@ public:
         const std::vector<unsigned int> &x = c->get_x();
         
         std::set<unsigned int> s;
-        s.emplace(calculate_play_nim(c, 0, true));
-        s.emplace(calculate_play_nim(c, c->size() - 1, true));
-        for (int i=1; i<c->size() - 1; i++) {
-            s.emplace(calculate_play_nim(c, i, true));
+        for (int i=0; i<c->size(); i++) {
+            s.emplace(calculate_play_nim(c, i, false));
             if (x[i])
-                s.emplace(calculate_play_nim(c, i, false));
+                s.emplace(calculate_play_nim(c, i, true));
         }
     
         return s;
@@ -192,7 +194,6 @@ public:
         verb.print("\n");
     
         std::set<unsigned int> s = get_mex_set(c);
-    
         verb.print("mex_set = {");
         //  calcula mex
         unsigned int nim = 0;

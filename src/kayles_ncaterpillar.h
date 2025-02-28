@@ -87,6 +87,7 @@ class NCaterpillarNimFile {
     
     std::string filename;
     std::fstream file;
+    size_t current_file_size;  // for checks while file is closed
     unsigned int x_class;
     size_t n0;
     size_t cache_size;
@@ -110,6 +111,10 @@ class NCaterpillarNimFile {
 
         file.seekp(HEADER_POS_N0);
         file.write((char*)&n0, HEADER_SIZE_N0);
+    }
+    void load_current_file_size() {
+        file.seekg(0, std::ios::end);
+        this->current_file_size = file.tellg();
     }
     size_t load_cache() {
         size_t cache_loaded = 0;
@@ -150,6 +155,7 @@ public:
         }
 
         write_headers();
+        load_current_file_size();
         load_cache();
 
         if (!start_open)
@@ -182,8 +188,7 @@ public:
         file.close();
     }
     size_t size() {
-        file.seekg(0, std::ios::end);
-        return (file.tellg() - HEADER_SIZE) / NIM_SIZE;
+        return (current_file_size - HEADER_SIZE) / NIM_SIZE;
     }
     size_t hash(unsigned int n) {
         if (n < n0) return 0;
@@ -193,7 +198,7 @@ public:
         return index + n0;
     }
     bool is_calculated(unsigned int n) {
-        return n >= n0 and hash(n) < this->size();
+        return n >= n0 && hash(n) < this->size();
     }
     bool is_cached(unsigned int n) {
         return hash(n) < this->cache_size;
@@ -215,8 +220,10 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        if (pos > this->size())
+        if (pos >= this->size()) {
             pos = this->size();
+            this->current_file_size += NIM_SIZE;
+        }
 
         if (pos < this->cache_size)
             this->cache[pos] = nim;
