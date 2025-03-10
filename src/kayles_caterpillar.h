@@ -16,12 +16,12 @@ public:
         this->x = std::vector<unsigned int>(n, 0);
     }
     Caterpillar(std::vector<unsigned int> x) {
-        if (x[0] != 0) {
+        if (x.size() > 0 && x[0] != 0) {
             x[0] -= 1;
             x.insert(x.begin(), 0);
         }
     
-        if (x[x.size() - 1] != 0) {
+        if (x.size() > 1 && x[x.size() - 1] != 0) {
             x[x.size() - 1] -= 1;
             x.push_back(0);
         }

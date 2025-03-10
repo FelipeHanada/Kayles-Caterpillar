@@ -29,8 +29,6 @@ public:
             }
             x /= N_REDUCED;
         }
-        if (this->x.back() > 0)
-            this->x.push_back(0);
     }
     NCaterpillar(unsigned int n)
     : Caterpillar(n) {
@@ -47,9 +45,11 @@ public:
     NCaterpillar(const Caterpillar *c)
     : Caterpillar(c) {
         this->x_class = 0;
+        unsigned int p = 1;
         for (int i=1; i<(int)this->x.size() - 1; i++) {
             this->x[i] = std::min(this->x[i], N_REDUCED);
-            this->x_class += this->x[i] * std::pow(N_REDUCED, i - 1);
+            this->x_class += this->x[i] * p;
+            p *= N_REDUCED;
         }
     }
 
