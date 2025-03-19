@@ -41,6 +41,16 @@ public:
             this->x[i] = std::min(this->x[i], N_REDUCED);
             this->x_class += this->x[i] * std::pow(N_REDUCED, i - 1);
         }
+
+        if (this->x.size() > 0 && this->x.front() > 0) {
+            this->x.front()--;
+            this->x.insert(this->x.begin(), 0);
+        }
+    
+        if (this->x.size() > 0 && this->x.back() > 0) {
+            this->x.back()--;
+            this->x.push_back(0);
+        }
     }
     NCaterpillar(const Caterpillar *c)
     : Caterpillar(c) {
@@ -94,8 +104,7 @@ class NCaterpillarNimFile {
     std::vector<unsigned int> cache;
     VerboseClass *verb;
     unsigned int get_n0(unsigned int x_class) {
-        int i = 1;  // for case x_class = 0, that should return 3
-        x_class /= N_REDUCED;
+        int i = 0;
         for (; x_class > 0; i++)
             x_class /= N_REDUCED;
 
@@ -291,7 +300,7 @@ public:
             }
         }
     }
-    NCaterpillarNimFile<N_REDUCED>* get_file(unsigned int x) {
+    NCaterpillarNimFile<N_REDUCED>* get_file(unsigned int x, bool open = false) {
         for (unsigned int i=files.size(); i <= x; i++)
             files.push_back(new NCaterpillarNimFile<N_REDUCED>(
                 file_prefix + (std::to_string(i)) + NIM_FILE_EXTENSION_NAME,
@@ -301,6 +310,9 @@ public:
                 file_verbose
             ));
 
+        if (open)
+            open_file(x);
+            
         return files[x];
     }
     void close() {
@@ -335,17 +347,23 @@ public:
     }
     unsigned int calculate_nim(const Caterpillar *c, const VerboseClass &verb = VerboseClass(false)) {
         const NCaterpillar<N_REDUCED> *bc = new NCaterpillar<N_REDUCED>(c);
+        unsigned int nim;
         
         NCaterpillarNimFile<N_REDUCED> *file;
         file = file_manager->get_file(bc->get_x_class());
 
-        if (bc->size() < file->get_n0())
+        if (bc->size() < file->get_n0()) {
+            delete bc;
             return CaterpillarNimCalculator::calculate_nim(c, verb);
+        }
 
         if (file->is_calculated(bc->size())) {
             if (!file->is_cached(bc->size()))
                 file_manager->open_file(bc->get_x_class());
-            return file->read_n(bc->size());
+            
+            nim = file->read_n(bc->size());
+            delete bc;
+            return nim;
         }
 
         if (bc->size() > file->ihash(file->size())) {
@@ -356,9 +374,10 @@ public:
         //  certifica-se que o BCaterpillar anterior já foi calculado
         //  para manter a sequencialidade do arquivo
 
-        unsigned int nim = CaterpillarNimCalculator::calculate_nim(c, verb);
+        nim = CaterpillarNimCalculator::calculate_nim(c, verb);
         file_manager->open_file(bc->get_x_class());
         file->write(nim);
+        delete bc;
         return nim;
     }
     void calculate_until(
@@ -371,8 +390,7 @@ public:
         auto next_display_time = start + display_interval;
 
         NCaterpillarNimFileManager<N_REDUCED> *file_manager = get_file_manager();
-        NCaterpillarNimFile<N_REDUCED> *file = file_manager->get_file(x_class);
-        file_manager->open_file(x_class);
+        NCaterpillarNimFile<N_REDUCED> *file = file_manager->get_file(x_class, true);
         unsigned int n = file->ihash(file->size());
         
         auto now = std::chrono::high_resolution_clock::now();

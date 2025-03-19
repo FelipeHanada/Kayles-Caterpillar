@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from nim_file_reader import NimFileReader
 
-CATNIM_FILE_PATH = 'data/reduce3novo/nim_file_1.catnim'
+CATNIM_FILE_PATH = 'data/reduce3novo_teste/nim_file_0.catnim'
 
 if __name__ == '__main__':
     with NimFileReader(CATNIM_FILE_PATH) as reader:

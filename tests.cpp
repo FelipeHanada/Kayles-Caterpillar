@@ -9,6 +9,8 @@
 using namespace std;
 typedef NCaterpillar<3> cat_t;
 typedef NCaterpillarNimCalculator<3> calc_t;
+typedef NCaterpillarNimFileManager<3> filem_t;
+typedef NCaterpillarNimFile<3> file_t;
 typedef unsigned int uint;
 #define CALC_FOLDER "data/test/"
 #define CALC_FILE_PREFIX CALC_FOLDER "nim_file_"
@@ -97,6 +99,23 @@ TEST(CalculatorTest3){
         uint nim2 = calc->calculate_nim(c);
 
         ASSERT(nim == nim2 && nim == test.second, c->str());
+    }
+    delete calc;
+    std::filesystem::remove_all(CALC_FOLDER);
+}
+TEST(CalculatorTest4){
+    calc_t *calc = new calc_t(CALC_FILE_PREFIX);
+    filem_t *filem = calc->get_file_manager();
+    for (auto test : nims) {
+        file_t *file = filem->get_file(test.first.get_x_class(), true);
+
+        if (file->get_n0() > test.first.get_x().size())
+            continue;
+
+        uint nim = calc->calculate_nim(&test.first);
+        uint nim2 = file->read(file->hash(test.first.size()));
+
+        ASSERT(nim == nim2 && nim == test.second, test.first.str());
     }
     delete calc;
     std::filesystem::remove_all(CALC_FOLDER);

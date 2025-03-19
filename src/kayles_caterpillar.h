@@ -15,17 +15,7 @@ public:
     Caterpillar(unsigned int n) {
         this->x = std::vector<unsigned int>(n, 0);
     }
-    Caterpillar(std::vector<unsigned int> x) {
-        if (x.size() > 0 && x[0] != 0) {
-            x[0] -= 1;
-            x.insert(x.begin(), 0);
-        }
-    
-        if (x.size() > 1 && x[x.size() - 1] != 0) {
-            x[x.size() - 1] -= 1;
-            x.push_back(0);
-        }
-    
+    Caterpillar(std::vector<unsigned int> x) {    
         this->x = x;
     }
     Caterpillar(const Caterpillar *c) {
