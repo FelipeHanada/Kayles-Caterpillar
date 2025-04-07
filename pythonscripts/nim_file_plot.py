@@ -8,6 +8,9 @@ if __name__ == '__main__':
         headers = reader.get_header()
         nimbers = [nimber for nimber in reader]
 
+    print(headers)
+    print(nimbers)
+
     fig, axs = plt.subplots()
     n_0 = headers['n0']
     axs.plot(range(n_0, n_0 + len(nimbers)), nimbers)

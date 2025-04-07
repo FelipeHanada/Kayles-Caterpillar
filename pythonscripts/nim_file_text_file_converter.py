@@ -1,8 +1,8 @@
 from nim_file_reader import NimFileReader
 import os
 
-SRC_DIR = "data/reduce3novo/"
-DST_DIR = "data/reduce3novotexto/"
+SRC_DIR = "data/19-03/"
+DST_DIR = "data/19-03-texto/"
 
 for file in os.listdir(SRC_DIR):
     if file.endswith(".catnim"):

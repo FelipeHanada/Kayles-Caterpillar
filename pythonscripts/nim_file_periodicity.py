@@ -1,12 +1,16 @@
+import os
+from collections import defaultdict
 from nim_file_reader import NimFileReader
 
-CATNIM_FILE_PATH = 'data/19-03/nim_file_1.catnim'
+def normalize_sequence(sequence):
+    """Normalize a sequence by finding its lexicographically smallest rotation."""
+    if sequence is None:
+        return None
+    n = len(sequence)
+    return min(tuple(sequence[i:] + sequence[:i]) for i in range(n))
 
-if __name__ == '__main__':
-    # read file and search for periodicity
-    # return the minimum value of x_0 such that nimbers[x] == nimbers[x + p] for all x >= x_0 until the end of the sequence 
-
-    with NimFileReader(CATNIM_FILE_PATH) as reader:
+def run(catnim_file_path):
+    with NimFileReader(catnim_file_path) as reader:
         headers = reader.get_header()
         n0 = headers['n0']
         nimbers = [nimber for nimber in reader]
@@ -19,15 +23,46 @@ if __name__ == '__main__':
             if all(nimbers[i] == nimbers[i + p] for i in range(x, len(nimbers) - p)):
                 periodicity = p
                 x0 = n0 + x
+                periodic_sequence = nimbers[x0 - n0 : x0 - n0 + periodicity]
                 break
 
         if periodicity is not None:
             break
 
-    print(f'Periodicity: {periodicity}')
+    # identify non-periodic indices using the periodic sequence
+    non_periodic_indices = []
     if periodicity is not None:
-        print(f'Periodic sequence: {nimbers[:periodicity]}')
-        print(f'Periodic sequence length: {len(nimbers[:periodicity])}')
-    if x0 is not None:
-        print(f'Periodicity starting from x_0 = {x0}')
-        print(f'x_0 - n0 = {x0 - n0}')
+        for i in range(len(nimbers)):
+            if nimbers[i] != periodic_sequence[(i - (x0 - n0)) % periodicity]:
+                non_periodic_indices.append(n0 + i)
+
+    return {
+        'periodicity': periodicity,
+        'periodic_sequence': periodic_sequence if periodicity is not None else None,
+        'periodic_sequence_length': len(nimbers[:periodicity]) if periodicity is not None else None,
+        'x0': x0,
+        'non_periodic_indices': non_periodic_indices
+    }
+
+CATNIM_FILE_DIR = 'data/19-03/'
+
+if __name__ == '__main__':
+
+    print(run("data/19-03/nim_file_0.catnim"))
+
+    # classifications = defaultdict(list)
+
+    # # Iterate through all files in the directory
+    # for filename in os.listdir(CATNIM_FILE_DIR):
+    #     file_path = os.path.join(CATNIM_FILE_DIR, filename)
+    #     if os.path.isfile(file_path):
+    #         result = run(file_path)
+    #         periodic_sequence = result['periodic_sequence']
+    #         normalized_sequence = normalize_sequence(periodic_sequence)
+    #         classifications[normalized_sequence].append(filename)
+
+    # # Print classification results
+    # for sequence, files in classifications.items():
+    #     print(f"Normalized Periodic Sequence: {sequence}")
+    #     print(f"Files: {files}")
+    #     print()
