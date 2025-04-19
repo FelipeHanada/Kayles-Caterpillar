@@ -1,3 +1,17 @@
+def write_nim_file(file_path: str, n_reduced: int, x_class: int, n0: int, numbers: list[int]) -> None:
+    HEADER_SIZE_N_REDUCED = 4
+    HEADER_SIZE_X_CLASS = 4
+    HEADER_SIZE_N0 = 4
+    NIM_SIZE = 4
+
+    with open(file_path, 'wb') as file:
+        file.write(n_reduced.to_bytes(HEADER_SIZE_N_REDUCED, byteorder='little'))
+        file.write(x_class.to_bytes(HEADER_SIZE_X_CLASS, byteorder='little'))
+        file.write(n0.to_bytes(HEADER_SIZE_N0, byteorder='little'))
+
+        for number in numbers:
+            file.write(number.to_bytes(NIM_SIZE, byteorder='little'))
+
 class NimFileReader:
     HEADER_POS_N_REDUCED = 0
     HEADER_SIZE_N_REDUCED = 4

@@ -7,7 +7,7 @@ DST_DIR = "data/19-03-texto/"
 for file in os.listdir(SRC_DIR):
     if file.endswith(".catnim"):
         input_file = SRC_DIR + file
-        output_file = DST_DIR + file[:-6] + ".txt"
+        output_file = DST_DIR + file.replace(".catnim", "") + ".txt"
 
         elements_read = 0
         with NimFileReader(input_file) as reader, open(output_file, "w") as writer:
