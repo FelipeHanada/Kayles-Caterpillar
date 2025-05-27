@@ -1,5 +1,3 @@
-import os
-from collections import defaultdict
 import nim_file_reader as nfr
 
 def normalize_sequence(sequence):
@@ -44,7 +42,6 @@ def run(catnim_file_path):
     return {
         'periodicity': periodicity,
         'periodic_sequence_x0': periodic_sequence,
-        'periodic_sequence_0': periodic_sequence[(34 - x0 % 34) % len(periodic_sequence):] + periodic_sequence[:(34 - x0 % 34) % len(periodic_sequence)],
         'periodic_sequence_length': len(periodic_sequence),
         'x0': x0,
         'non_periodic_indices': non_periodic_indices,
@@ -53,26 +50,4 @@ def run(catnim_file_path):
 
 
 if __name__ == '__main__':
-    print(run("data/19-03/nim_file_1.catnim"))
-
-    #     headers = reader.get_header()
-    #     n0 = headers['n0']
-    #     nimbers = [nimber for nimber in reader]
-
-
-    # classifications = defaultdict(list)
-
-    # # Iterate through all files in the directory
-    # for filename in os.listdir(CATNIM_FILE_DIR):
-    #     file_path = os.path.join(CATNIM_FILE_DIR, filename)
-    #     if os.path.isfile(file_path):
-    #         result = run(file_path)
-    #         periodic_sequence = result['periodic_sequence']
-    #         normalized_sequence = normalize_sequence(periodic_sequence)
-    #         classifications[normalized_sequence].append(filename)
-
-    # # Print classification results
-    # for sequence, files in classifications.items():
-    #     print(f"Normalized Periodic Sequence: {sequence}")
-    #     print(f"Files: {files}")
-    #     print()
+    print(run("data/19-03/nim_file_0.catnim"))

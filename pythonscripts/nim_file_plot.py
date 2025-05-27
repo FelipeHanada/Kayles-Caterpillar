@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
 from nim_file_reader import NimFileReader
 
-CATNIM_FILE_PATH = 'data/19-03/nim_file_1.catnim'
-
-if __name__ == '__main__':
-    with NimFileReader(CATNIM_FILE_PATH) as reader:
+def plot_nim_file_graph(catnim_file_path, output_path='nim_plot.png'):
+    with NimFileReader(catnim_file_path) as reader:
         headers = reader.get_header()
         nimbers = [nimber for nimber in reader]
 
@@ -23,5 +21,31 @@ if __name__ == '__main__':
     axs.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
 
     fig.set_size_inches(8, 4.5)
-    fig.savefig('nim_plot.png', dpi=300)
+    fig.savefig(output_path, dpi=300)
     plt.show()
+
+def plot_text_file_graph(text_file_path, output_path='text_plot.png'):
+    with open(text_file_path, 'r') as file:
+        lines = file.readlines()
+
+    nimbers = []
+    for line in lines:
+        nimbers += list(map(int, line.strip().split()))
+
+    fig, axs = plt.subplots()
+    axs.plot(range(len(nimbers)), nimbers)
+
+    axs.set_xlabel('n')
+    axs.set_ylabel('nímero')
+
+    axs.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+    axs.xaxis.set_minor_locator(plt.MaxNLocator(integer=True))
+    axs.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+
+    fig.set_size_inches(8, 4.5)
+    fig.savefig(output_path, dpi=300)
+    plt.show()
+
+if __name__ == '__main__':
+    # plot_nim_file_graph('data/19-03/nim_file_1.catnim')
+    plot_text_file_graph('data/nimbers caterpillar 01 0 10.txt')

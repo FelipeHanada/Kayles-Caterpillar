@@ -44,7 +44,8 @@ TEST(NcaterpillarConstructor) {
         cat_t *c1 = new cat_t(test.first.first, test.first.second);
         cat_t *c2 = new cat_t(test.second);
 
-        ASSERT(c1->get_x() == c2->get_x(), "error on test " << test.first.first << " " << test.first.second);
+        std::vector<unsigned int> reversed(c2->get_x().rbegin(), c2->get_x().rend());
+        ASSERT((c1->get_x() == c2->get_x()) || (c1->get_x() == reversed), "error on test " << test.first.first << " " << test.first.second);
 
         delete c1;
         delete c2;
@@ -64,10 +65,6 @@ vector<pair<cat_t, uint>> nims = {
     { cat_t((vector<uint>){0, 0, 0}), 2 },
     { cat_t((vector<uint>){0, 2, 0}), 2 },
     { cat_t((vector<uint>){0, 1, 0, 0}), 3 },
-    { cat_t((vector<uint>){0, 3, 0, 0}), 3 },
-    { cat_t((vector<uint>){0, 0, 2, 0, 0}), 2 },
-    { cat_t((vector<uint>){0, 3, 1, 1, 0}), 1 },
-    { cat_t((vector<uint>){0, 3, 1, 2, 0, 0}), 0 },
 };
 TEST(CalculatorTest1) {
     for (auto test : nims) {

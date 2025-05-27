@@ -120,7 +120,7 @@ def create_n_3_tables():
 if __name__ == "__main__":
     transient_table = generate_table(
         ["$k$", "$n_0$"],
-        [lambda n: str(n), lambda n: nfp.run(f"data/19-03/nim_file_{n}.catnim")["x0"] - 1],
+        [lambda n: str(n), lambda n: nfp.run(f"data/19-03/nim_file_{n}.catnim")["x0"]],
         nlines=200
     )
 

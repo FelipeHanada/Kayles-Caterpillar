@@ -10,17 +10,14 @@
 
 class Caterpillar {
 protected:
-    std::vector<unsigned int> x;
+    const std::vector<unsigned int> x;
 public:
-    Caterpillar(unsigned int n) {
-        this->x = std::vector<unsigned int>(n, 0);
-    }
-    Caterpillar(std::vector<unsigned int> x) {    
-        this->x = x;
-    }
-    Caterpillar(const Caterpillar *c) {
-        this->x = c->get_x();
-    }
+    Caterpillar(unsigned int n)
+        : x(std::vector<unsigned int>(n, 0)) {}
+    Caterpillar(std::vector<unsigned int> x)
+        : x(x) {}
+    Caterpillar(const Caterpillar *c)
+        : x(c->get_x()) {}
     virtual ~Caterpillar() {}
     size_t size() const {
         return x.size();

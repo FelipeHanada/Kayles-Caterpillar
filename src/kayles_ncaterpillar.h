@@ -15,54 +15,58 @@
 template<unsigned int N_REDUCED>
 class NCaterpillar : public Caterpillar {
 protected:
-    unsigned int x_class;
+    const unsigned int x_class;
 public:
-    NCaterpillar(unsigned int n, unsigned int x)
-    : Caterpillar(n) {
-        this->x_class = x;
-        int i = 1;
-        while (x > 0) {
-            if (i < this->x.size()) {
-                this->x[i++] = x % N_REDUCED;
-            } else {
-                this->x.push_back(x % N_REDUCED);
-            }
-            x /= N_REDUCED;
-        }
-    }
     NCaterpillar(unsigned int n)
-    : Caterpillar(n) {
-        this->x_class = 0;
-    }
+        : Caterpillar(std::vector<unsigned int>(n, 0)), x_class(0) {}
+    NCaterpillar(unsigned int n, unsigned int x)
+        : Caterpillar([n, x] {
+            std::vector<unsigned int> v(n, 0);
+            unsigned int tmp = x;
+            int i = 1;
+            while (tmp > 0 && i < (int)v.size()) {
+                v[i++] = tmp % N_REDUCED;
+                tmp /= N_REDUCED;
+            }
+            return v;
+        }()),
+        x_class(x)
+    {}
     NCaterpillar(std::vector<unsigned int> x)
-    : Caterpillar(x) {
-        this->x_class = 0;
-        for (int i=1; i<(int)x.size() - 1; i++) {
-            this->x[i] = std::min(this->x[i], N_REDUCED);
-            this->x_class += this->x[i] * std::pow(N_REDUCED, i - 1);
-        }
+        : Caterpillar([&x] {
+            int lz = 0;
+            int tz = 0;
+            for (int i=0; i<x.size(); i++) {
+                if (x[i]) break;
+                lz++;
+            }
+            for (int i = x.size() - 1; i>=0; i--) {
+                if (x[i]) break;
+                tz++;
+            }
+            std::vector<unsigned int> v = (lz >= tz) ? (std::vector<unsigned int>(x.rbegin(), x.rend())) : x;
 
-        if (this->x.size() > 0 && this->x.front() > 0) {
-            this->x.front()--;
-            this->x.insert(this->x.begin(), 0);
-        }
-    
-        if (this->x.size() > 0 && this->x.back() > 0) {
-            this->x.back()--;
-            this->x.push_back(0);
-        }
-    }
+            for (int i = 1; i < (int)v.size() - 1; i++)
+                v[i] = std::min(v[i], N_REDUCED - 1);
+            if (!v.empty() && v.front() > 0) {
+                v.front()--;
+                v.insert(v.begin(), 0);
+            }
+            if (!v.empty() && v.back() > 0) {
+                v.back()--;
+                v.push_back(0);
+            }
+            return v;
+        }()),
+        x_class([&x] {
+            unsigned int xc = 0;
+            for (int i = 1; i < (int)x.size() - 1; i++)
+                xc += std::min(x[i], N_REDUCED) * std::pow(N_REDUCED, i - 1);
+            return xc;
+        }())
+    {}
     NCaterpillar(const Caterpillar *c)
-    : Caterpillar(c) {
-        this->x_class = 0;
-        unsigned int p = 1;
-        for (int i=1; i<(int)this->x.size() - 1; i++) {
-            this->x[i] = std::min(this->x[i], N_REDUCED);
-            this->x_class += this->x[i] * p;
-            p *= N_REDUCED;
-        }
-    }
-
+        : NCaterpillar(c->get_x()) {}
     unsigned int get_x_class() const {
         return x_class;
     }
@@ -346,28 +350,28 @@ public:
         return file_manager;
     }
     unsigned int calculate_nim(const Caterpillar *c, const VerboseClass &verb = VerboseClass(false)) {
-        const NCaterpillar<N_REDUCED> *bc = new NCaterpillar<N_REDUCED>(c);
+        const NCaterpillar<N_REDUCED> *nc = new NCaterpillar<N_REDUCED>(c);
         unsigned int nim;
         
         NCaterpillarNimFile<N_REDUCED> *file;
-        file = file_manager->get_file(bc->get_x_class());
+        file = file_manager->get_file(nc->get_x_class());
 
-        if (bc->size() < file->get_n0()) {
-            delete bc;
+        if (nc->size() < file->get_n0()) {
+            delete nc;
             return CaterpillarNimCalculator::calculate_nim(c, verb);
         }
 
-        if (file->is_calculated(bc->size())) {
-            if (!file->is_cached(bc->size()))
-                file_manager->open_file(bc->get_x_class());
+        if (file->is_calculated(nc->size())) {
+            if (!file->is_cached(nc->size()))
+                file_manager->open_file(nc->get_x_class());
             
-            nim = file->read_n(bc->size());
-            delete bc;
+            nim = file->read_n(nc->size());
+            delete nc;
             return nim;
         }
 
-        if (bc->size() > file->ihash(file->size())) {
-            Caterpillar *c1 = new NCaterpillar<N_REDUCED>(bc->size() - 1, bc->get_x_class());
+        if (nc->size() > file->ihash(file->size())) {
+            Caterpillar *c1 = new NCaterpillar<N_REDUCED>(nc->size() - 1, nc->get_x_class());
             calculate_nim(c1);
             delete c1;
         }
@@ -375,9 +379,9 @@ public:
         //  para manter a sequencialidade do arquivo
 
         nim = CaterpillarNimCalculator::calculate_nim(c, verb);
-        file_manager->open_file(bc->get_x_class());
+        file_manager->open_file(nc->get_x_class());
         file->write(nim);
-        delete bc;
+        delete nc;
         return nim;
     }
     void calculate_until(
